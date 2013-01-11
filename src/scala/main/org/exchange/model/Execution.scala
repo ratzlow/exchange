@@ -10,8 +10,8 @@ import collection.mutable
  * @author fratzlow
  * @since 2012-12-31
  */
-class Execution(one: Order, openSize: Int) {
-  private val partialMatches= mutable.LinkedHashMap[Order, Int]()
+case class Execution(one: Order, openSize: Int ){
+  private val partialMatches = mutable.LinkedHashMap[Order, Int]()
 
   /**
    * Size of this execution of the given one order that should be filled by this execution. It can be the full order size
@@ -28,7 +28,7 @@ class Execution(one: Order, openSize: Int) {
   // auxilary constructors
   //
 
-  def this(one: Order) = this( one, one.getSize)
+  def this(one: Order) = this( one, one.size)
 
   //
   // public API
@@ -36,11 +36,11 @@ class Execution(one: Order, openSize: Int) {
 
   def +=(nextManyMatch: Order, partialMatchingSize: Int) {
     add(nextManyMatch, partialMatchingSize)(openQty >= partialMatchingSize &&
-                                            nextManyMatch.getSize >= partialMatchingSize)
+                                            nextManyMatch.size >= partialMatchingSize)
   }
 
   def +=(nextManyMatch: Order) {
-    add(nextManyMatch, nextManyMatch.getSize)(openQty >= nextManyMatch.getSize)
+    add(nextManyMatch, nextManyMatch.size)(openQty >= nextManyMatch.size)
   }
 
   //
@@ -56,7 +56,7 @@ class Execution(one: Order, openSize: Int) {
    * @param isSizeOkay size check logic to cover partial fill case and prevent from overfilling
    */
   private def add(nextManyMatch: Order, matchingSize: Int)(isSizeOkay: => Boolean) {
-    require(nextManyMatch.getSide != one.getSide)
+    require(nextManyMatch.side != one.side)
 
     if ( isSizeOkay ) {
       partialMatches.put( nextManyMatch, matchingSize )

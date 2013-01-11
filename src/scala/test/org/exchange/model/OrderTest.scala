@@ -7,20 +7,20 @@ class OrderTest extends FunSuite {
 
   test("buy and sell order creation") {
     val buyOrder = new Order(Side.BUY, 20, BigDecimal(100), isin)
-    assert( buyOrder.getSide == Side.BUY )
+    assert( buyOrder.side == Side.BUY )
 
     val sellOrder = new Order(Side.SELL, 20, BigDecimal(100), isin)
-    assert( sellOrder.getSide == Side.SELL )
+    assert( sellOrder.side == Side.SELL )
 
     val orderBook = new Orderbook( isin )
     orderBook += buyOrder
     orderBook += sellOrder
 
-    assert(orderBook.getBuyOrders.size == 1)
-    assert(orderBook.getBuyOrders.contains(buyOrder))
+    assert(orderBook.buyOrders.size == 1)
+    assert(orderBook.buyOrders.contains(buyOrder))
 
-    assert(orderBook.getSellOrders.size == 1)
-    assert(orderBook.getSellOrders.contains(sellOrder))
+    assert(orderBook.sellOrders.size == 1)
+    assert(orderBook.sellOrders.contains(sellOrder))
   }
 
   test("Checking preconditions") {

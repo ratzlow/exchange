@@ -6,14 +6,14 @@ import collection.mutable
 
 class MatchEngine(orderbook: Orderbook) {
 
-  val leftUnmatchedOrders = new QueueContainer(orderbook.getBuyOrders.sortWith(_.getPrice > _.getPrice), Side.BUY)
-  val rightUnmatchedOrders = new QueueContainer(orderbook.getSellOrders.sortWith(_.getPrice > _.getPrice), Side.SELL)
+  val leftUnmatchedOrders = new QueueContainer(orderbook.buyOrders.sortWith(_.price > _.price), Side.BUY)
+  val rightUnmatchedOrders = new QueueContainer(orderbook.sellOrders.sortWith(_.price > _.price), Side.SELL)
   val executions = new mutable.MutableList[Execution]
 
   def calc() {
     if ( !leftUnmatchedOrders.getOrders.isEmpty ) {
       val order = leftUnmatchedOrders.getOrders.dequeue()
-      matchOrder( order, order.getSize )
+      matchOrder( order, order.size )
     }
   }
 
@@ -22,7 +22,7 @@ class MatchEngine(orderbook: Orderbook) {
 
     val execution = new Execution( orderToMatch, openQty )
     executions += execution
-    val otherSideOrders = getOtherSideOrders( orderToMatch.getSide )
+    val otherSideOrders = getOtherSideOrders( orderToMatch.side )
 
     // TODO (FRa) : (FRa) : rewrite in a more functional style
     while( !otherSideOrders.isEmpty ) {
@@ -31,17 +31,17 @@ class MatchEngine(orderbook: Orderbook) {
 
       // if current order is fully executed start with next
       if ( openQty == 0 ) {
-        matchOrder( unmatched, unmatched.getSize )
+        matchOrder( unmatched, unmatched.size )
 
       // the orderToExecute order can be fully added to order to be executed
-      } else if (openQty >= unmatched.getSize && isGoodExecutionPrice(execution, unmatched) ) {
+      } else if (openQty >= unmatched.size && isGoodExecutionPrice(execution, unmatched) ) {
         execution += unmatched
 
       // only partially executed by the match, so the partial one will needs
       // execution from the other side
-      } else if (openQty > 0 && unmatched.getSize > openQty && isGoodExecutionPrice(execution, unmatched) ) {
+      } else if (openQty > 0 && unmatched.size > openQty && isGoodExecutionPrice(execution, unmatched) ) {
         execution +=(unmatched, openQty)
-        matchOrder(unmatched, unmatched.getSize - openQty)
+        matchOrder(unmatched, unmatched.size - openQty)
       }
     }
   }
@@ -52,8 +52,8 @@ class MatchEngine(orderbook: Orderbook) {
 
 
   def isGoodExecutionPrice(execution: Execution, orderToExecute: Order): Boolean = {
-    isGoodPrice(execution.getOneOrder.getPrice, orderToExecute) &&
-    isGoodPrice(orderToExecute.getPrice, execution.getOneOrder)
+    isGoodPrice(execution.getOneOrder.price, orderToExecute) &&
+    isGoodPrice(orderToExecute.price, execution.getOneOrder)
   }
 
   /**
@@ -64,18 +64,18 @@ class MatchEngine(orderbook: Orderbook) {
   private def isGoodPrice( tradePrice: BigDecimal, order: Order ) : Boolean = {
     def isGoodSellPrice : Boolean = {
       require( tradePrice >= 0 )
-      require(order.getSide == Side.SELL)
-      tradePrice >= order.getPrice
+      require(order.side == Side.SELL)
+      tradePrice >= order.price
     }
 
     def isGoodBuyPrice : Boolean = {
       require( tradePrice >= 0 )
-      require( order.getSide == Side.BUY)
-      tradePrice <= order.getPrice
+      require( order.side == Side.BUY)
+      tradePrice <= order.price
     }
 
-    if (order.getSide == Side.BUY) isGoodBuyPrice
-    else if (order.getSide == Side.SELL) isGoodSellPrice
+    if (order.side == Side.BUY) isGoodBuyPrice
+    else if (order.side == Side.SELL) isGoodSellPrice
     else throw new IllegalArgumentException("Invalid order side" + order)
   }
 

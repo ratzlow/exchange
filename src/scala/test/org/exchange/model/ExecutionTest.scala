@@ -9,7 +9,7 @@ class ExecutionTest extends FunSuite {
      val buyOrder = new Order(Side.BUY, 20, BigDecimal(100), isin)
 
      val sellOrder: Order = new Order(Side.SELL, size = 30, price = BigDecimal(100), isin)
-     assert( buyOrder.getSize < sellOrder.getSize )
+     assert( buyOrder.size < sellOrder.size )
 
      val execution = new Execution(buyOrder)
      // adding another/same order that exceeds the execution size will lead in an error

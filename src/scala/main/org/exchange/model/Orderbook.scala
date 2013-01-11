@@ -1,6 +1,5 @@
 package org.exchange.model
 
-import collection.mutable
 
 /**
  * Keep the orders for a given security. It contains order from buy and sell side which are to be matched against
@@ -13,11 +12,8 @@ import collection.mutable
  * @author ratzlow@gmail.com
  * @since 2012-12-31
  */
-class Orderbook( isin: String ) {
+case class Orderbook( isin: String, var buyOrders: List[Order] = List.empty, var sellOrders: List[Order] = List.empty) {
   require( !isin.isEmpty )
-
-  private val buyOrders = mutable.MutableList[Order]()
-  private val sellOrders = mutable.MutableList[Order]()
 
   /**
    * Add order to orderbook's buy- or sell orders.
@@ -25,21 +21,14 @@ class Orderbook( isin: String ) {
    * @param order that should be listed in orderbook
    */
   def +=( order: Order ) {
+    // TODO (FRa) : (FRa) : this not null check looks strange
     require( order != null )
-    require( order.getSide != null )
-    require( order.getIsin == isin )
+    require( order.side != null )
+    require( order.isin == isin )
 
-    val side: Side.Side = order.getSide
-    if ( side == Side.BUY ) buyOrders += order
-    else if ( side == Side.SELL ) sellOrders += order
+    val side: Side.Side = order.side
+    if ( side == Side.BUY ) buyOrders = order :: buyOrders
+    else if ( side == Side.SELL ) sellOrders = order :: sellOrders
     else throw new OrderbookException("Unknown order side!")
   }
-
-
-  //
-  // ro access to orderbook state
-  //
-
-  def getBuyOrders = buyOrders.toList
-  def getSellOrders = sellOrders.toList
 }
