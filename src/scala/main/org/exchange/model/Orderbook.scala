@@ -3,7 +3,7 @@ package org.exchange.model
 
 /**
  * Keep the orders for a given security. It contains order from buy and sell side which are to be matched against
- * each other.
+ * each sell.
  *
  * This class is stateful and thus not thread safe.
  *

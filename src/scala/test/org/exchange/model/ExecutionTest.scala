@@ -8,13 +8,12 @@ class ExecutionTest extends FunSuite {
      val isin: String = "CoCa"
      val buyOrder = new Order(Side.BUY, 20, BigDecimal(100), isin)
 
-     val sellOrder: Order = new Order(Side.SELL, size = 30, price = BigDecimal(100), isin)
-     assert( buyOrder.size < sellOrder.size )
+     val sellOrder: Order = new Order(Side.SELL, orderQty = 30, price = BigDecimal(100), isin = isin)
+     assert( buyOrder.orderQty < sellOrder.orderQty )
 
-     val execution = new Execution(buyOrder)
-     // adding another/same order that exceeds the execution size will lead in an error
-     intercept[OrderbookException] {
-       execution += sellOrder
+     // adding another/same order that exceeds the execution orderQty will lead in an error
+     intercept[IllegalArgumentException] {
+       Execution(buyOrder, sellOrder, 40)
      }
    }
  }

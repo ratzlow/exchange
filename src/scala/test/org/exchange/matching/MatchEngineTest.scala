@@ -11,7 +11,7 @@ class MatchEngineTest extends FunSuite {
 
   private val isin: String = "CocaCola"
 
-  test("exactly one limit. Sizes on both sides are equal so all orders should be matched.") {
+  test("exactly buy limit. Sizes on both sides are equal so all orders should be matched.") {
     val orderbook = new Orderbook(isin)
     val expectedOrderbookSize = 700
 
@@ -26,17 +26,19 @@ class MatchEngineTest extends FunSuite {
     orderbook += newSell(100, 200)
     expect(expectedOrderbookSize)( assertEqualOrderbookSizes(orderbook) )
 
-    val executions = matchOrders(orderbook)
+    val matchResult = matchOrders(orderbook)
 
-    val executedSize = executions.foldLeft(0)(_ + _.getSize)
+    val executions: List[Execution] = matchResult.executions
+    val executedSize = executions.foldLeft(0)(_ + _.executionSize)
     expect( expectedOrderbookSize)( executedSize )
 
-    // TODO (FRa) : (FRa) : any other way to check this predicate is true; forall() doesn't show the failed elem
-    executions.foreach( e => assert(e.isFullyExecuted === true) )
+    // TODO (FRa) : (FRa) : any sell way to check this predicate is true; forall() doesn't show the failed elem
+    assert( matchResult.orderbook.buyOrders.isEmpty)
+    assert( matchResult.orderbook.sellOrders.isEmpty)
   }
 
 
-  test("Not all orders can be matched since one side has a surplus. The highest limit will be considered") {
+  test("Not all orders can be matched since buy side has a surplus. The highest limit will be considered") {
     val orderbook = new Orderbook(isin)
     val expectedOrderbookBuySize = 600
     val expectedOrderbookSellSize = 500
@@ -48,35 +50,37 @@ class MatchEngineTest extends FunSuite {
     // Ask/Sell side
     orderbook += newSell(300, 199)
     orderbook += newSell(200, 198)
-    expect(expectedOrderbookBuySize)( orderbook.buyOrders.foldLeft(0)( _ + _.size) )
-    expect(expectedOrderbookSellSize)( orderbook.sellOrders.foldLeft(0)( _ + _.size) )
+    expect(expectedOrderbookBuySize)( orderbook.buyOrders.foldLeft(0)( _ + _.orderQty) )
+    expect(expectedOrderbookSellSize)( orderbook.sellOrders.foldLeft(0)( _ + _.orderQty) )
 
-    val executions = matchOrders(orderbook)
+    val matchResult = matchOrders(orderbook)
+    val balancedOrderbook = matchResult.orderbook
     val expectedSurplus = expectedOrderbookBuySize - expectedOrderbookSellSize
 
-    val partialExecution = executions.find( !_.isFullyExecuted ).get
-    expect(expectedSurplus)(partialExecution.getOpenQty)
-    expect(Side.BUY)(partialExecution.getOneOrder.side)
-    expect(BigDecimal(201))(partialExecution.getOneOrder.price)
+    expect(0) {balancedOrderbook.sellOrders.size}
+    expect(1) {balancedOrderbook.buyOrders.size}
+    val surplusOrder: Order = balancedOrderbook.buyOrders.head
+    expect(expectedSurplus)(surplusOrder.openQty)
+    expect(BigDecimal(201))(surplusOrder.price)
   }
 
 
 
 
-  def matchOrders(orderbook: Orderbook) : List [Execution] = {
+  def matchOrders(orderbook: Orderbook) : MatchResult = {
     // match the orders, orders are removed from orderbook
-    val matchEngine = new MatchEngine(orderbook)
-    matchEngine.calc()
+    val matchEngine = MatchEngine()
+    val matchResult: MatchResult = matchEngine.balance(orderbook)
 
-    val executions = matchEngine.getExecutions
-    assert(!executions.isEmpty)
-    executions
+    assert( !matchResult.executions.isEmpty)
+    assert( matchResult.orderbook != Unit )
+    matchResult
   }
 
   private def assertEqualOrderbookSizes(orderbook: Orderbook) : Int = {
-    // TODO (FRa) : (FRa) : this looks strange, should be rather one val assignment
-    val buyBookSize = orderbook.buyOrders.foldLeft(0)( _ + _.size)
-    val sellBookSize = orderbook.sellOrders.foldLeft(0)(_ + _.size)
+    // TODO (FRa) : (FRa) : this looks strange, should be rather buy val assignment
+    val buyBookSize = orderbook.buyOrders.foldLeft(0)( _ + _.orderQty)
+    val sellBookSize = orderbook.sellOrders.foldLeft(0)(_ + _.orderQty)
 
     assert(buyBookSize === sellBookSize)
 

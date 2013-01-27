@@ -1,15 +1,17 @@
 <component name="libraryTable">
   <library name="scala-library">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/../typesafe/lib/scala-library.jar!/" />
-      <root url="jar://$PROJECT_DIR$/../typesafe/lib/scala-swing.jar!/" />
-      <root url="jar://$PROJECT_DIR$/../typesafe/lib/scala-dbc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../scala/scala-2.10.0-RC2/lib/scala-library.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../scala/scala-2.10.0-RC2/lib/scala-swing.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../scala/scala-2.10.0-RC2/lib/scala-actors.jar!/" />
     </CLASSES>
-    <JAVADOC />
+    <JAVADOC>
+      <root url="file://$PROJECT_DIR$/../scala/scala-2.10.0-RC2/doc/scala-devel-docs/api" />
+    </JAVADOC>
     <SOURCES>
-      <root url="jar://$PROJECT_DIR$/../typesafe/src/scala-library-src.jar!/" />
-      <root url="jar://$PROJECT_DIR$/../typesafe/src/scala-swing-src.jar!/" />
-      <root url="jar://$PROJECT_DIR$/../typesafe/src/scala-dbc-src.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../scala/scala-2.10.0-RC2/src/scala-library-src.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../scala/scala-2.10.0-RC2/src/scala-swing-src.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../scala/scala-2.10.0-RC2/src/scala-actors-src.jar!/" />
     </SOURCES>
   </library>
 </component>
