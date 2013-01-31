@@ -5,10 +5,8 @@ import org.scalatest.FunSuite
 class OrderTest extends FunSuite {
   private val isin: String = "CoCa"
 
-  test("Instantiation of order") {
-    val order: Order = Order.newBuy(100, BigDecimal(20), isin)
-  }
-/*  test("buy and sell order creation") {
+
+  test("buy and sell order creation") {
       val buyOrder = new Order(Side.BUY, 20, BigDecimal(100), isin)
       assert( buyOrder.side == Side.BUY )
 
@@ -31,5 +29,5 @@ class OrderTest extends FunSuite {
       intercept[IllegalArgumentException] {
         orderBook += new Order(Side.BUY, 1, BigDecimal(1), "wrongIsin")
       }
-    }*/
+    }
 }

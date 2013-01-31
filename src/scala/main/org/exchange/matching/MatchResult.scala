@@ -16,10 +16,18 @@ case class MatchResult(orderbook: Orderbook,
 
 
   def auctionPriceHighestLimit : BigDecimal = {
-     executions match {
-       case e :: rest => if (e.buy.price > e.sell.price) e.buy.price
-                         else e.sell.price
-       case _ => BigDecimal(0)
-     }
+    auctionPrice { (e: Execution) => e.buy.price > e.sell.price }
+  }
+
+  def auctionPriceLowestLimit : BigDecimal = {
+    auctionPrice { (e: Execution) => e.buy.price < e.sell.price }
+  }
+
+  private def auctionPrice(compare: (Execution) => Boolean): BigDecimal = {
+    executions match {
+      case e :: rest => if (compare(e)) e.buy.price
+                        else e.sell.price
+      case _ => BigDecimal(0)
+    }
   }
 }
