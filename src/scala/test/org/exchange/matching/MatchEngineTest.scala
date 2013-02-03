@@ -90,6 +90,6 @@ class MatchEngineTest extends FunSuite {
     buyBookSize
   }
 
-  private def newBuy(size: Int, price: Int) = new Order(Side.BUY, size, BigDecimal(price), isin)
-  private def newSell(size: Int, price: Int) = new Order(Side.SELL, size, BigDecimal(price), isin)
+  private def newBuy(fullSize: Int, price: Int) = new Order(side = Side.BUY, orderQty = fullSize, price = BigDecimal(price), isin = isin)
+  private def newSell(size: Int, price: Int) = new Order(side = Side.SELL, orderQty = size, price = BigDecimal(price), isin = isin)
 }
