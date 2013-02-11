@@ -22,10 +22,12 @@ class MatchEngineImpl extends MatchEngine {
 
   override def balance(orderbook: Orderbook) : MatchResult = {
     //TODO (FRa) : (FRa) : move ordering of orders to insertion time according to price/time prio
-    val orderedBuyOrders: List[Order] = orderbook.buyOrders.sortWith(_.price > _.price)
-    val orderedSellOrders: List[Order] = orderbook.sellOrders.sortWith(_.price < _.price)
+    val orderedBuyOrders: List[Order] = orderbook.buyOrders.filter(_.orderType == OrderType.LIMIT).sortWith(_.price > _.price)
+    val orderedSellOrders: List[Order] = orderbook.sellOrders.filter(_.orderType == OrderType.LIMIT).sortWith(_.price < _.price)
     balance(orderedBuyOrders, orderedSellOrders, Nil)
   }
+
+
 
   //
   // internal impl

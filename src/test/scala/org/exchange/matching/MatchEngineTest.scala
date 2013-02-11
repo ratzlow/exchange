@@ -1,17 +1,55 @@
 package org.exchange.matching
 
 import org.scalatest.FunSuite
-import org.exchange.model.{Execution, Side, Order, Orderbook}
+import org.exchange.model._
+import org.exchange.model.Execution
+import org.exchange.model.Orderbook
 
 /**
  * Calculate matching price based on current order book. This test expects all orders to be limit orders even though
  * no execution type as such is specified yet for the order.
+ * Since matching for an auction is executed time prio doesn't account.
+ *
+ * @author fratzlow
  */
 class MatchEngineTest extends FunSuite {
 
   private val isin: String = "CocaCola"
 
-  test("exactly buy limit. Sizes on both sides are equal so all orders should be matched.") {
+  test("There are several possible limits and there is both an ask and bid surplus") {
+    val orderbook = new Orderbook(isin)
+    val marketBuy: Order = new Order(Side.BUY, OrderType.MARKET, 100, BigDecimal(0), isin)
+    val marketSell: Order = new Order(Side.SELL, OrderType.MARKET, 100, BigDecimal(0), isin)
+    val limitBuy: Order = new Order(Side.BUY, OrderType.LIMIT, 100, BigDecimal(199), isin)
+    val limitSell: Order = new Order(Side.SELL, OrderType.LIMIT, 100, BigDecimal(202), isin)
+
+    orderbook += marketBuy
+    orderbook += limitBuy
+
+    orderbook += marketSell
+    orderbook += limitSell
+
+    val matchEngine = MatchEngine()
+    val result: MatchResult = matchEngine.balance(orderbook)
+
+    // market orders are not considered to determine the auction price
+    // limit orders don't cross
+    expectResult(result.orderbook.buyOrders.size)(1)
+    expectResult(result.orderbook.buyOrders.head)(limitBuy)
+
+    expectResult(result.orderbook.sellOrders.size)(1)
+    expectResult(result.orderbook.sellOrders.head)(limitSell)
+    expectResult(result.executions.size)(0)
+
+
+    // auction price will be the one with closest order limit
+    expectResult( BigDecimal(199)){ result.auctionPrice(BigDecimal(199)) }
+    expectResult( BigDecimal(199)){ result.auctionPrice(BigDecimal(200)) }
+    expectResult( BigDecimal(202)){ result.auctionPrice(BigDecimal(201)) }
+  }
+
+
+  test("Exactly one buy limit. Sizes on both sides are equal so all orders should be matched.") {
     val orderbook = new Orderbook(isin)
     val expectedOrderbookSize = 700
 
@@ -68,15 +106,13 @@ class MatchEngineTest extends FunSuite {
   }
 
 
-
-
   private def matchOrders(orderbook: Orderbook) : MatchResult = {
     // match the orders, orders are removed from orderbook
     val matchEngine = MatchEngine()
     val matchResult: MatchResult = matchEngine.balance(orderbook)
 
     assert( !matchResult.executions.isEmpty)
-    assert( matchResult.orderbook != Unit ) // TODO (FRa) : (?) : how to do not null checks
+    assert( Option(matchResult.orderbook).isDefined )
     matchResult
   }
 
