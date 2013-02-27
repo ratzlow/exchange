@@ -6,6 +6,5 @@ package org.exchange.matching.auction
  * @author ratzlow@gmail.com
  * @since 2013-02-27
  */
-class AuctionException {
-
-}
+// TODO (FRa) : (FRa) : make it privat to this package
+class AuctionException (msg: String) extends Exception(msg) { }

@@ -1,7 +1,6 @@
 package org.exchange.matching.engine
 
 import org.exchange.model.Orderbook
-import org.exchange.matching.MatchResult
 
 /**
  * Public interface every match engine must conform with. Test suites will be written against it.

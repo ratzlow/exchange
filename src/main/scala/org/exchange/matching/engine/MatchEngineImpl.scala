@@ -4,7 +4,6 @@ import org.exchange.model._
 import org.exchange.model.Orderbook
 import org.exchange.model.Order
 import scala.Option
-import org.exchange.matching.MatchResult_1
 
 /**
  * Match the orders against each other. First orders will be ordered with orders nearest to the market first. This is
@@ -21,7 +20,7 @@ class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends Match
   // API entry point
   //
 
-  override def balance(orderbook: Orderbook) : AuctionMatchResult = {
+  override def balance(orderbook: Orderbook) : MatchResult = {
     //TODO (FRa) : (FRa) : move ordering of orders to insertion time according to price/time prio
     val orderedBuyOrders: List[Order] = orderbook.buyOrders.filter(_.orderType == OrderType.LIMIT).sortWith(_.price > _.price)
     val orderedSellOrders: List[Order] = orderbook.sellOrders.filter(_.orderType == OrderType.LIMIT).sortWith(_.price < _.price)
@@ -33,7 +32,7 @@ class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends Match
   //
 
   private def balance( buyOrders: List[Order], sellOrders: List[Order],
-                       previousExecutions : List[Execution] = List.empty ) : AuctionMatchResult = {
+                       previousExecutions : List[Execution] = List.empty ) : MatchResult = {
 
     // TODO (FRa) : (FRa) : in absence of return stmt is it possible to write code like:
     // if (!precondition) return -> avoids complexity of body
@@ -45,7 +44,7 @@ class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends Match
           optionalExec match {
             // orders couldn't be matched because they are to far from the market, so stop matching
             case None =>
-              new MatchResult_1(new Orderbook("???", buyOrders, sellOrders), previousExecutions)
+              new MatchResult(new Orderbook("???", buyOrders, sellOrders), previousExecutions)
 
             // orders were matched
             case Some(execution) =>
@@ -55,7 +54,7 @@ class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends Match
               // TODO (FRa) : (FRa) : check if this is really tail recursive -> would otherwise risk StackOverflow
               balance( leftBuys, leftSells, executions )
           }
-    }else new MatchResult_1( new Orderbook("???", buyOrders, sellOrders), previousExecutions)
+    }else new MatchResult( new Orderbook("???", buyOrders, sellOrders), previousExecutions)
   }
 
 
@@ -100,7 +99,7 @@ class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends Match
   }
 
   /**
-   * Expects both order to be limit orders
+   * Price will always be okay if we match against a market order
    */
   private def isGoodPrice( tradePrice: BigDecimal, order: Order ) : Boolean = {
     def isGoodSellPrice : Boolean = {

@@ -1,6 +1,6 @@
 package org.exchange.matching
 
-import org.exchange.model.{MatchingException, Orderbook, Order, Execution}
+import org.exchange.model.{MatchingException, Orderbook, Execution}
 
 /**
  * The result container of a balancing operation. If orders could be matched they will be added to the previousExecutions,
@@ -24,7 +24,6 @@ case class MatchResult_1(orderbook: Orderbook, executions: List[Execution] = Nil
 
 
   def auctionPrice(referencePrice: BigDecimal = 0) : BigDecimal = {
-
 
     // if we have a buy surplus the other market side will get the best price
     // -> so best price for sell side is considered

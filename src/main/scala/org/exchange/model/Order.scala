@@ -15,6 +15,8 @@ import OrderType._
  */
 case class Order( side: Side, orderType: OrderType = OrderType.LIMIT,
                   orderQty: Int, price: BigDecimal, isin: String, cummulatedQty: Int = 0 ) {
+
+
   /**
    * @param executedShareSize number of shares executed
    * @return updated Order with increased filled fullSize
@@ -25,7 +27,11 @@ case class Order( side: Side, orderType: OrderType = OrderType.LIMIT,
 }
 
 object Order {
-  def newBuy(orderQty: Int, price: BigDecimal, isin: String) : Order = new Order(Side.BUY, OrderType.LIMIT, orderQty, price, isin, 0)
+
+  def apply(side: Side, orderType: OrderType, orderQty: Int, isin: String) : Order = {
+    require(orderType != LIMIT && orderType != STOP_LIMIT, "Must not be an order of limit type!")
+    new Order(side, orderType, orderQty, BigDecimal(0), isin, 0)
+  }
 }
 
 
