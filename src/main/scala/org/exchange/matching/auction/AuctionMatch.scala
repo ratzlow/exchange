@@ -18,17 +18,4 @@ case class AuctionMatch(limit: BigDecimal, executions: List[Execution], orderboo
   val bidSurplus = orderbook.buyOrders.foldLeft(0)(_ + _.openQty)
   val askSurplus = orderbook.sellOrders.foldLeft(0)(_ + _.openQty)
   val executableVolume : Int = executions.foldLeft(0)(_ + _.executionSize)
-
-  /**
-   * @return true ... the orderbook contains at least one order that has a limit price set that could be used to
-   *         determine an auction price
-   */
-  val isLimitBasedMatch : Boolean = {
-    executions.exists( (e) => isLimitOrder(e.buy) || isLimitOrder(e.sell)) ||
-    orderbook.buyOrders.exists( isLimitOrder(_)) ||
-    orderbook.sellOrders.exists( isLimitOrder(_))
-  }
-
-  private def isLimitOrder(order: Order) : Boolean =
-    order.orderType == OrderType.LIMIT || order.orderType == OrderType.STOP_LIMIT
 }

@@ -22,8 +22,8 @@ class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends Match
 
   override def balance(orderbook: Orderbook) : MatchResult = {
     //TODO (FRa) : (FRa) : move ordering of orders to insertion time according to price/time prio
-    val orderedBuyOrders: List[Order] = orderbook.buyOrders.filter(_.orderType == OrderType.LIMIT).sortWith(_.price > _.price)
-    val orderedSellOrders: List[Order] = orderbook.sellOrders.filter(_.orderType == OrderType.LIMIT).sortWith(_.price < _.price)
+    val orderedBuyOrders: List[Order] = orderbook.buyOrders.sortWith(_.price > _.price)
+    val orderedSellOrders: List[Order] = orderbook.sellOrders.sortWith(_.price < _.price)
     balance(orderedBuyOrders, orderedSellOrders, Nil)
   }
 
@@ -44,7 +44,8 @@ class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends Match
           optionalExec match {
             // orders couldn't be matched because they are to far from the market, so stop matching
             case None =>
-              new MatchResult(new Orderbook("???", buyOrders, sellOrders), previousExecutions)
+              // TODO (FRa) : (FRa) : add isin
+              new MatchResult(new Orderbook("??", buyOrders, sellOrders), previousExecutions)
 
             // orders were matched
             case Some(execution) =>
@@ -78,9 +79,16 @@ class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends Match
     val executionSize = Math.min(one.openQty, other.openQty)
 
     // the sell order can be fully added to order to be executed
-    if (executionSize >= 0 && isGoodExecutionPrice(one, other))
+    if (executionSize >= 0 && isGoodExecutionPrice(one, other) && canBeMatched(one, other) )
       Some( Execution(one, other, executionSize) )
     else None
+  }
+
+  // TODO (FRa) : (FRa) : make available as strategy for auctions vs. continuous trading
+  private def canBeMatched( one: Order, other: Order ) : Boolean = {
+    // only market orders are executable against each other or non-market orders are
+    (one.orderType == OrderType.MARKET && other.orderType == OrderType.MARKET) ||
+    (one.orderType != OrderType.MARKET && other.orderType != OrderType.MARKET)
   }
 
   //

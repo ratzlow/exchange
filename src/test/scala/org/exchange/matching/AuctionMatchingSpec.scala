@@ -16,7 +16,6 @@ class AuctionMatchingSpec extends FeatureSpec with GivenWhenThen {
 
   private val symbol: String = "IBM"
 
-
   feature("5) There are several possible limits an surplus on hand") {
 
     Given("The orderbook is setup with 2 orders on buy and sell side")
@@ -36,7 +35,6 @@ class AuctionMatchingSpec extends FeatureSpec with GivenWhenThen {
     }
   }
 
-
   feature("6) Only market orders are executable in the order book") {
     Given("The orderbook is setup with 1 orders on buy and sell side")
     val orderbook = Orderbook(symbol)
@@ -49,14 +47,13 @@ class AuctionMatchingSpec extends FeatureSpec with GivenWhenThen {
     }
     Then("Auction cannot be conducted and explod")
 
-//    When("Reference price is provided")
-//    val referencePrice: BigDecimal = 123
-//    val conducted: AuctionResult = Auction(orderbook).conduct(Some(referencePrice))
-//    expectResult(referencePrice)(conducted.auctionPrice.get)
-//    expectResult(0)(conducted.askSurplus)
-//    expectResult(100)(conducted.bidSurplus)
-//    expectResult(800)(conducted.executableQuantity)
-//    Then("The auction Price == reference price and orders could be matched")
-
+    When("Reference price is provided")
+    val referencePrice: BigDecimal = 123
+    val conducted: AuctionResult = Auction(orderbook).conduct(Some(referencePrice))
+    expectResult(referencePrice)(conducted.auctionPrice.get)
+    expectResult(0)(conducted.askSurplus)
+    expectResult(100)(conducted.bidSurplus)
+    expectResult(800)(conducted.executableQuantity)
+    Then("The auction Price == reference price and orders could be matched")
   }
 }

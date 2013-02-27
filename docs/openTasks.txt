@@ -1,1 +1,4 @@
 add logging
+add matching for market, stoplimit orders against limit orders (define what good price means in this combination)
+make matching rules injectable strategies (auction vs. cont trading)
+restrict visibility to packages

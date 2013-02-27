@@ -1,6 +1,6 @@
 package org.exchange.matching.auction
 
-import org.exchange.model.Orderbook
+import org.exchange.model.{OrderType, Order, Orderbook}
 
 import org.exchange.matching.engine.{MatchResult, MatchEngineImpl}
 
@@ -11,6 +11,7 @@ import org.exchange.matching.engine.{MatchResult, MatchEngineImpl}
  * @since 2013-02-16
  */
 class Auction(orderbook: Orderbook) {
+  val isOrderbookWithLimitOrders = hasLimitOrders(orderbook)
 
   // TODO (FRa) : (FRa) : perf imp: execute loop in parallel
   def conduct( referencePrice: Option[BigDecimal] = None ) : AuctionResult = {
@@ -46,9 +47,15 @@ class Auction(orderbook: Orderbook) {
     val possibleLimits: Int = bestAuctions.size
 
     // no limit could be found -> only market orders
-    if (possibleLimits == 0 && !auctionMatches.isEmpty) {
+    if (possibleLimits == 0 && !isOrderbookWithLimitOrders) {
       if ( referencePrice == None) throw new AuctionException("If no limit could be found a refPrice must be available!")
-      else create(referencePrice, Some(auctionMatches.head))
+      else {
+        // TODO (FRa) : (FRa) : refactor! to conduct()
+        val matchEngine = new MatchEngineImpl()
+        val balanced: MatchResult = matchEngine.balance(orderbook)
+        val auctionMatch = new AuctionMatch(referencePrice.get, balanced.executions, balanced.orderbook)
+        create(referencePrice, Some(auctionMatch))
+      }
 
     } else if (possibleLimits == 1) {
       create(referencePrice, Some(auctionByLimit.highestExecutionVolumes.head))
@@ -60,7 +67,7 @@ class Auction(orderbook: Orderbook) {
   }
 
 
-  def createByInLimitRangeCheck(referencePrice: BigDecimal,
+  private def createByInLimitRangeCheck(referencePrice: BigDecimal,
                                 maxBidSurplusAuction: AuctionMatch,
                                 minAskSurplusAuction: AuctionMatch): AuctionResult = {
 
@@ -83,7 +90,7 @@ class Auction(orderbook: Orderbook) {
     }
   }
 
-  def createByRefPriceComparison(referencePrice: BigDecimal,
+  private def createByRefPriceComparison(referencePrice: BigDecimal,
                                  maxBidSurplusAuction: AuctionMatch,
                                  minAskSurplusAuction: AuctionMatch): AuctionResult = {
     require( referencePrice > 0, "Reference price must be > 0: " + referencePrice)
@@ -137,6 +144,17 @@ class Auction(orderbook: Orderbook) {
     }
   }
 
+  /**
+   * @return true ... the orderbook contains at least one order that has a limit price set that could be used to
+   *         determine an auction price
+   */
+  private def hasLimitOrders(orderbook: Orderbook) : Boolean = {
+    orderbook.buyOrders.exists( isLimitOrder(_)) ||
+    orderbook.sellOrders.exists( isLimitOrder(_))
+  }
+
+  private def isLimitOrder(order: Order) : Boolean =
+    order.orderType == OrderType.LIMIT || order.orderType == OrderType.STOP_LIMIT
 
   private case class AuctionByLimit(auctions: List[AuctionMatch]) {
 
@@ -144,8 +162,8 @@ class Auction(orderbook: Orderbook) {
      * @return auction with highest executable volume
      */
     val highestExecutionVolumes: Set[AuctionMatch] = {
-      if ( auctions.filter(_.isLimitBasedMatch).isEmpty ) Set.empty
-      else auctions.filter(_.isLimitBasedMatch).groupBy(_.executableVolume).maxBy(_._1)._2.toSet
+      if ( auctions.isEmpty ) Set.empty
+      else auctions.groupBy(_.executableVolume).maxBy(_._1)._2.toSet
     }
   }
 }
