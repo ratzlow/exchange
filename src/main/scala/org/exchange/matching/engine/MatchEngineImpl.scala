@@ -1,40 +1,39 @@
-package org.exchange.matching
+package org.exchange.matching.engine
 
 import org.exchange.model._
 import org.exchange.model.Orderbook
 import org.exchange.model.Order
 import scala.Option
+import org.exchange.matching.MatchResult_1
 
 /**
  * Match the orders against each other. First orders will be ordered with orders nearest to the market first. This is
  * defined by various rules that determine what is "nearest to the market".
  *
+ * @param referencePrice if provided will be consulted in good price check. Used in auction matching. Default is None.
+ *
  * @author ratzlow@gmail.com
  * @since 2013-01-12
  */
-class MatchEngineImpl extends MatchEngine {
-  // TODO (FRa) : (FRa) : prices of side need to be comared against reference price later on
-  // TODO (FRa) : (FRa) : impl Limit orderType
+class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends MatchEngine {
 
   //
   // API entry point
   //
 
-  override def balance(orderbook: Orderbook) : MatchResult = {
+  override def balance(orderbook: Orderbook) : AuctionMatchResult = {
     //TODO (FRa) : (FRa) : move ordering of orders to insertion time according to price/time prio
     val orderedBuyOrders: List[Order] = orderbook.buyOrders.filter(_.orderType == OrderType.LIMIT).sortWith(_.price > _.price)
     val orderedSellOrders: List[Order] = orderbook.sellOrders.filter(_.orderType == OrderType.LIMIT).sortWith(_.price < _.price)
     balance(orderedBuyOrders, orderedSellOrders, Nil)
   }
 
-
-
   //
   // internal impl
   //
 
   private def balance( buyOrders: List[Order], sellOrders: List[Order],
-                       previousExecutions : List[Execution] = List.empty ) : MatchResult = {
+                       previousExecutions : List[Execution] = List.empty ) : AuctionMatchResult = {
 
     // TODO (FRa) : (FRa) : in absence of return stmt is it possible to write code like:
     // if (!precondition) return -> avoids complexity of body
@@ -46,7 +45,7 @@ class MatchEngineImpl extends MatchEngine {
           optionalExec match {
             // orders couldn't be matched because they are to far from the market, so stop matching
             case None =>
-              new MatchResult(new Orderbook("???", buyOrders, sellOrders), previousExecutions)
+              new MatchResult_1(new Orderbook("???", buyOrders, sellOrders), previousExecutions)
 
             // orders were matched
             case Some(execution) =>
@@ -56,7 +55,7 @@ class MatchEngineImpl extends MatchEngine {
               // TODO (FRa) : (FRa) : check if this is really tail recursive -> would otherwise risk StackOverflow
               balance( leftBuys, leftSells, executions )
           }
-    }else new MatchResult( new Orderbook("???", buyOrders, sellOrders), previousExecutions)
+    }else new MatchResult_1( new Orderbook("???", buyOrders, sellOrders), previousExecutions)
   }
 
 
@@ -107,13 +106,13 @@ class MatchEngineImpl extends MatchEngine {
     def isGoodSellPrice : Boolean = {
       require( tradePrice >= 0 )
       require(order.side == Side.SELL)
-      tradePrice >= order.price
+      tradePrice >= order.price && referencePrice.getOrElse(tradePrice) >= order.price
     }
 
     def isGoodBuyPrice : Boolean = {
       require( tradePrice >= 0 )
       require( order.side == Side.BUY)
-      tradePrice <= order.price
+      tradePrice <= order.price && referencePrice.getOrElse(tradePrice) <= order.price
     }
 
     if (order.side == Side.BUY) isGoodBuyPrice
