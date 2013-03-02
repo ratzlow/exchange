@@ -7,5 +7,5 @@ package org.exchange.model
  */
 object OrderType extends Enumeration {
   type OrderType = Value
-  val MARKET, LIMIT, STOP_LIMIT = Value
+  val MARKET, LIMIT, STOP_LIMIT, HIDDEN = Value
 }

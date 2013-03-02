@@ -71,8 +71,8 @@ class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends Match
   /**
    * The actual order match. Here we will hook in matching rules later on.
    *
-   * @param one
-   * @param other
+   * @param one order of one side of the book
+   * @param other order of other side of the book
    * @return if orders can be matched an execution otherwise None
    */
   private def execute(one: Order, other: Order) : Option[Execution] = {

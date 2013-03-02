@@ -11,9 +11,14 @@ import org.exchange.matching.engine.{MatchResult, MatchEngineImpl}
  * @since 2013-02-16
  */
 class Auction(orderbook: Orderbook) {
-  val isOrderbookWithLimitOrders = hasLimitOrders(orderbook)
+  private val isOrderbookWithLimitOrders = hasLimitOrders(orderbook)
 
-  // TODO (FRa) : (FRa) : perf imp: execute loop in parallel
+  /**
+   * Execute an auction for given orderbook. This will determine an auction price and several quantities.
+   *
+   * @param referencePrice default is none
+   * @return collecting parameter reflecting the result of the auction.
+   */
   def conduct( referencePrice: Option[BigDecimal] = None ) : AuctionResult = {
 
     val possibleLimits: Set[BigDecimal] =
@@ -32,30 +37,23 @@ class Auction(orderbook: Orderbook) {
     create( referencePrice, auctions.toList )
   }
 
-  //
-  //------------------------------
-  //
+  //-----------------------------------------------------------------------------------
+  // derive the parameters of the auction for given book an optional reference price
+  //-----------------------------------------------------------------------------------
 
   private def create( referencePrice: Option[BigDecimal],
                       auctionMatches: List[AuctionMatch]) : AuctionResult = {
 
     // find single limit with highest executable quantity
-    val auctionByLimit: AuctionByLimit = new AuctionByLimit(auctionMatches)
+    val auctionByLimit: AuctionByLimit = new AuctionByLimit(referencePrice, auctionMatches)
     val bestAuctions: Set[AuctionMatch] = auctionByLimit.highestExecutionVolumes
 
     // reflect the decistion tree as outlined on Xetra Auctions chap 12
     val possibleLimits: Int = bestAuctions.size
 
     // no limit could be found -> only market orders
-    if (possibleLimits == 0 && !isOrderbookWithLimitOrders) {
-      if ( referencePrice == None) throw new AuctionException("If no limit could be found a refPrice must be available!")
-      else {
-        // TODO (FRa) : (FRa) : refactor! to conduct()
-        val matchEngine = new MatchEngineImpl()
-        val balanced: MatchResult = matchEngine.balance(orderbook)
-        val auctionMatch = new AuctionMatch(referencePrice.get, balanced.executions, balanced.orderbook)
-        create(referencePrice, Some(auctionMatch))
-      }
+    if (possibleLimits == 0 ) {
+      createByOrderTypeCheck( referencePrice, bestAuctions )
 
     } else if (possibleLimits == 1) {
       create(referencePrice, Some(auctionByLimit.highestExecutionVolumes.head))
@@ -64,6 +62,35 @@ class Auction(orderbook: Orderbook) {
       createBySurplusComparison(referencePrice, bestAuctions)
 
     } else throw new AuctionException("Found invalid number of best auctions!")
+  }
+
+
+  private def createByOrderTypeCheck(referencePrice: Option[BigDecimal], bestAuctions: Set[AuctionMatch]) : AuctionResult = {
+
+    referencePrice match {
+
+      // we have an orderbook without crossing orders thus no executions
+      case None if (isOrderbookWithLimitOrders) => {
+        assert(bestAuctions.forall(_.executableVolume == 0),
+          "Found case with executions in an auction so price could be derived!")
+
+        val maxVisibleBidLimit = orderbook.buyOrders.filter(isLimitOrder(_)).maxBy(_.price).price
+        val minVisibleAskLimit = orderbook.sellOrders.filter(isLimitOrder(_)).minBy(_.price).price
+        new AuctionResult(orderbook, bidSurplus = 0, askSurplus = 0,
+          lowestVisibleAskLimit = Some(minVisibleAskLimit), highestVisibleBidLimit = Some(maxVisibleBidLimit),
+          executableQuantity = 0
+        )
+      }
+      case Some(x) if (!isOrderbookWithLimitOrders) => {
+        // TODO (FRa) : (FRa) : refactor! to conduct()
+        val matchEngine = new MatchEngineImpl()
+        val balanced: MatchResult = matchEngine.balance(orderbook)
+        val auctionMatch = new AuctionMatch(referencePrice.get, balanced.executions, balanced.orderbook)
+        create(referencePrice, Some(auctionMatch))
+      }
+      case _ => throw new AuctionException("Unhandled combination isOrderbookWithLimitOrders = " +
+                  isOrderbookWithLimitOrders + " referencePrice = " + referencePrice)
+    }
   }
 
 
@@ -89,6 +116,7 @@ class Auction(orderbook: Orderbook) {
       else create(Some(referencePrice), Some(maxBidSurplusAuction))
     }
   }
+
 
   private def createByRefPriceComparison(referencePrice: BigDecimal,
                                  maxBidSurplusAuction: AuctionMatch,
@@ -156,14 +184,25 @@ class Auction(orderbook: Orderbook) {
   private def isLimitOrder(order: Order) : Boolean =
     order.orderType == OrderType.LIMIT || order.orderType == OrderType.STOP_LIMIT
 
-  private case class AuctionByLimit(auctions: List[AuctionMatch]) {
+
+  private case class AuctionByLimit(referencePrice: Option[BigDecimal], auctions: List[AuctionMatch]) {
 
     /**
      * @return auction with highest executable volume
      */
     val highestExecutionVolumes: Set[AuctionMatch] = {
+
       if ( auctions.isEmpty ) Set.empty
-      else auctions.groupBy(_.executableVolume).maxBy(_._1)._2.toSet
+      else {
+
+        val auctionsByExecutableVolue: Map[Int, List[AuctionMatch]] = referencePrice match {
+          case Some(x: BigDecimal) => auctions.groupBy(_.executableVolume)
+          case None => auctions.filter(_.executableVolume > 0).groupBy(_.executableVolume)
+        }
+
+        if ( auctionsByExecutableVolue.isEmpty) Set.empty
+        else auctionsByExecutableVolue.maxBy(_._1)._2.toSet
+      }
     }
   }
 }

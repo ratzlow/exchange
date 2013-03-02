@@ -1,7 +1,7 @@
 package org.exchange.matching
 
 import auction.{AuctionResult, Auction}
-import org.scalatest.FunSuite
+import org.scalatest.{GivenWhenThen, FunSuite}
 import org.exchange.model._
 import org.exchange.model.Orderbook
 
@@ -12,7 +12,7 @@ import org.exchange.model.Orderbook
  *
  * @author fratzlow
  */
-class MatchEngineTest extends FunSuite {
+class MatchEngineTest extends FunSuite with GivenWhenThen {
 
   private val isin: String = "CocaCola"
 
@@ -107,6 +107,30 @@ class MatchEngineTest extends FunSuite {
     expectResult(199){Auction(orderbook).conduct(Option(200)).auctionPrice.get}
     expectResult(202){Auction(orderbook).conduct(Option(201)).auctionPrice.get}
     expectResult(202){Auction(orderbook).conduct(Option(202)).auctionPrice.get}
+  }
+
+
+  test("7a) There is no elible limit as there are only orders in the book which are not executable") {
+    val orderbook = new Orderbook(isin)
+    Given("Orders in book are not crossing")
+    orderbook += new Order(Side.BUY, OrderType.HIDDEN, 80, 200, isin)
+    orderbook += new Order(Side.BUY, OrderType.LIMIT, 80, 199, isin)
+    orderbook += new Order(Side.SELL, OrderType.LIMIT, 80, 201, isin)
+
+    When("The auction is conducted")
+    val conducted: AuctionResult = Auction(orderbook).conduct()
+
+    expectResult(None){conducted.auctionPrice}
+    Then("No auction price can be derived so only highest visible bid limit")
+    expectResult(199){conducted.highestVisibleBidLimit.get}
+
+    And("lowest visible ask limit are published")
+    expectResult(201){conducted.lowestVisibleAskLimit.get}
+
+    And("Cummulated quantities of either side are the same before and after the auction")
+    val cumQty = (orders: List[Order]) => orders.foldLeft(0)(_ + _.orderQty)
+    expectResult( cumQty(orderbook.buyOrders))( cumQty(conducted.orderbook.buyOrders) )
+    expectResult( cumQty(orderbook.sellOrders))( cumQty(conducted.orderbook.sellOrders) )
   }
 
 
