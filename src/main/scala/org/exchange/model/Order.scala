@@ -2,6 +2,7 @@ package org.exchange.model
 
 import Side._
 import OrderType._
+import java.util.Date
 
 /**
  * The order submitted by the trader. An order of buy side needs to be matched against order(s) of the sell side.
@@ -12,9 +13,11 @@ import OrderType._
  * @param isin ... instrument identifier
  * @param cummulatedQty ... Total quantity (e.g. number of shares) filled. (FIX:14)
  * @param orderType ... how to execute an order (FIX: 40)
+ * @param timestamp ... when order was added to orderbook
  */
 case class Order( side: Side, orderType: OrderType = OrderType.LIMIT,
-                  orderQty: Int, price: BigDecimal, isin: String, cummulatedQty: Int = 0 ) {
+                  orderQty: Int, price: BigDecimal, isin: String, cummulatedQty: Int = 0,
+                  timestamp: Date = new Date()) {
 
 
   /**

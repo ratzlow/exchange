@@ -4,6 +4,7 @@ import auction.{AuctionResult, Auction}
 import org.scalatest.{GivenWhenThen, FunSuite}
 import org.exchange.model._
 import org.exchange.model.Orderbook
+import java.util.{GregorianCalendar, Calendar, Date}
 
 /**
  * Calculate matching price based on current order book. This test expects all orders to be limit orders even though
@@ -131,6 +132,30 @@ class MatchEngineTest extends FunSuite with GivenWhenThen {
     val cumQty = (orders: List[Order]) => orders.foldLeft(0)(_ + _.orderQty)
     expectResult( cumQty(orderbook.buyOrders))( cumQty(conducted.orderbook.buyOrders) )
     expectResult( cumQty(orderbook.sellOrders))( cumQty(conducted.orderbook.sellOrders) )
+  }
+
+
+  test("7b) partial execution of an order within the opening auciton") {
+    Given("The auction is opened with an auction price and orders need to be matched. " +
+          "Time priority is used to execute one fully and one partially")
+    val orderbook = new Orderbook(isin)
+    orderbook += new Order( Side.BUY, OrderType.LIMIT, 300, 200, isin, timestamp = createTimestamp(9, 0))
+    orderbook += new Order( Side.BUY, OrderType.LIMIT, 300, 200, isin, timestamp = createTimestamp(9, 1))
+    orderbook += new Order( Side.SELL, OrderType.LIMIT, 400, 200, isin, timestamp = createTimestamp(9, 0))
+
+    When("BUY orders have different timestamp and same price")
+
+    Then("earlier order must have precedence and gets fully executed")
+
+
+    When("Second buy order only gets partially executed")
+    Then("Remaining shares will be transfered into continous trading if order is not restricted to auctions only?")
+  }
+
+  // TODO (FRa) : (FRa) : use implicite?!
+  private def createTimestamp(hour: Int, min: Int) : Date = {
+    val cal: Calendar = new GregorianCalendar(2013, Calendar.FEBRUARY, 18, hour, min)
+    cal.getTime
   }
 
 

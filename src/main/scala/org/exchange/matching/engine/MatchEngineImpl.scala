@@ -55,7 +55,7 @@ class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends Match
               // TODO (FRa) : (FRa) : check if this is really tail recursive -> would otherwise risk StackOverflow
               balance( leftBuys, leftSells, executions )
           }
-    }else new MatchResult( new Orderbook("???", buyOrders, sellOrders), previousExecutions)
+    } else new MatchResult( new Orderbook("???", buyOrders, sellOrders), previousExecutions)
   }
 
 
