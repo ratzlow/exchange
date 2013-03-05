@@ -1,10 +1,11 @@
 package org.exchange.matching.auction
 
 /**
- * TODO: comment
+ * If invalid conditions for an auction are encountered during price determination or the actual execution this
+ * exception is thrown.
  *
+ * @param msg ... reason for this exception
  * @author ratzlow@gmail.com
  * @since 2013-02-27
  */
-// TODO (FRa) : (FRa) : make it privat to this package
-class AuctionException (msg: String) extends Exception(msg) { }
+case class AuctionException(msg: String) extends Exception(msg) { }

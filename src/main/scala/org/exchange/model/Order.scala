@@ -9,7 +9,7 @@ import java.util.Date
  *
  * @param side ... @see Side (FIX:54)
  * @param orderQty ... number of shares (FIX:38)
- * @param price ... the price
+ * @param price ... the limit price (FIX:44)
  * @param isin ... instrument identifier
  * @param cummulatedQty ... Total quantity (e.g. number of shares) filled. (FIX:14)
  * @param orderType ... how to execute an order (FIX: 40)
@@ -19,6 +19,15 @@ case class Order( side: Side, orderType: OrderType = OrderType.LIMIT,
                   orderQty: Int, price: BigDecimal, isin: String, cummulatedQty: Int = 0,
                   timestamp: Date = new Date()) {
 
+  /**
+   * In the case of partial execution part of the order is not yet filled, so left open for further execution or until
+   * it is remove from the book.
+   */
+  private val openQuantiy = orderQty - cummulatedQty
+
+  //
+  // public API
+  //
 
   /**
    * @param executedShareSize number of shares executed
@@ -26,7 +35,7 @@ case class Order( side: Side, orderType: OrderType = OrderType.LIMIT,
    */
   def +=( executedShareSize: Int ) : Order = this.copy(cummulatedQty = this.cummulatedQty + executedShareSize)
 
-  def openQty : Int = orderQty - cummulatedQty
+  def openQty : Int = openQuantiy
 }
 
 object Order {

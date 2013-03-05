@@ -2,16 +2,25 @@ package org.exchange.matching.auction
 
 import org.exchange.model.{OrderType, Order, Orderbook}
 
-import org.exchange.matching.engine.{MatchResult, MatchEngineImpl}
+import org.exchange.matching.engine.{MatchEngine, MatchResult, MatchEngineImpl}
 
 /**
- * TODO: comment
+ * At a auction, participants place orders to buy or sell units at certain buying or selling prices. Orders collected
+ * during a auction are matched to form a contract.
  *
  * @author ratzlow@gmail.com
  * @since 2013-02-16
  */
 class Auction(orderbook: Orderbook) {
+
+  /**
+   * true ... if the orderbook contains limit orders which can be used to derive a price.
+   */
   private val isOrderbookWithLimitOrders = hasLimitOrders(orderbook)
+
+  //
+  // public API
+  //
 
   /**
    * Execute an auction for given orderbook. This will determine an auction price and several quantities.
@@ -26,7 +35,7 @@ class Auction(orderbook: Orderbook) {
 
     // function literal that matches the order book for a given limit
     val matchByLimit = (limit: BigDecimal) => {
-      val matchEngine = new MatchEngineImpl(Some(limit))
+      val matchEngine = MatchEngine(Some(limit))
       val balanced: MatchResult = matchEngine.balance(orderbook)
       new AuctionMatch(limit, balanced.executions, balanced.orderbook)
     }
@@ -45,8 +54,7 @@ class Auction(orderbook: Orderbook) {
                       auctionMatches: List[AuctionMatch]) : AuctionResult = {
 
     // find single limit with highest executable quantity
-    val auctionByLimit: AuctionByLimit = new AuctionByLimit(referencePrice, auctionMatches)
-    val bestAuctions: Set[AuctionMatch] = auctionByLimit.highestExecutionVolumes
+    val bestAuctions: Set[AuctionMatch] = highestExecutionVolumes(referencePrice, auctionMatches)
 
     // reflect the decistion tree as outlined on Xetra Auctions chap 12
     val possibleLimits: Int = bestAuctions.size
@@ -56,7 +64,7 @@ class Auction(orderbook: Orderbook) {
       createByOrderTypeCheck( referencePrice, bestAuctions )
 
     } else if (possibleLimits == 1) {
-      create(referencePrice, Some(auctionByLimit.highestExecutionVolumes.head))
+      create(referencePrice, Some(bestAuctions.head))
 
     } else if (possibleLimits > 1) {
       createBySurplusComparison(referencePrice, bestAuctions)
@@ -83,7 +91,7 @@ class Auction(orderbook: Orderbook) {
       }
       case Some(x) if (!isOrderbookWithLimitOrders) => {
         // TODO (FRa) : (FRa) : refactor! to conduct()
-        val matchEngine = new MatchEngineImpl()
+        val matchEngine = MatchEngine()
         val balanced: MatchResult = matchEngine.balance(orderbook)
         val auctionMatch = new AuctionMatch(referencePrice.get, balanced.executions, balanced.orderbook)
         create(referencePrice, Some(auctionMatch))
@@ -185,24 +193,21 @@ class Auction(orderbook: Orderbook) {
     order.orderType == OrderType.LIMIT || order.orderType == OrderType.STOP_LIMIT
 
 
-  private case class AuctionByLimit(referencePrice: Option[BigDecimal], auctions: List[AuctionMatch]) {
+  /**
+   * @return auction with highest executable volume
+   */
+  def highestExecutionVolumes(referencePrice: Option[BigDecimal], auctions: List[AuctionMatch]) : Set[AuctionMatch] = {
 
-    /**
-     * @return auction with highest executable volume
-     */
-    val highestExecutionVolumes: Set[AuctionMatch] = {
+    if ( auctions.isEmpty ) Set.empty
+    else {
 
-      if ( auctions.isEmpty ) Set.empty
-      else {
-
-        val auctionsByExecutableVolue: Map[Int, List[AuctionMatch]] = referencePrice match {
-          case Some(x: BigDecimal) => auctions.groupBy(_.executableVolume)
-          case None => auctions.filter(_.executableVolume > 0).groupBy(_.executableVolume)
-        }
-
-        if ( auctionsByExecutableVolue.isEmpty) Set.empty
-        else auctionsByExecutableVolue.maxBy(_._1)._2.toSet
+      val auctionsByExecutableVolue: Map[Int, List[AuctionMatch]] = referencePrice match {
+        case Some(x: BigDecimal) => auctions.groupBy(_.executableVolume)
+        case None => auctions.filter(_.executableVolume > 0).groupBy(_.executableVolume)
       }
+
+      if ( auctionsByExecutableVolue.isEmpty) Set.empty
+      else auctionsByExecutableVolue.maxBy(_._1)._2.toSet
     }
   }
 }

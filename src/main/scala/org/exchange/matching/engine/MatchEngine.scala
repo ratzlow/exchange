@@ -21,4 +21,10 @@ trait MatchEngine {
  */
 object MatchEngine {
   def apply() : MatchEngine = new MatchEngineImpl()
+
+  /**
+   * @param referencePrice constructor specific for auctions
+   * @return
+   */
+  def apply( referencePrice: Option[BigDecimal] = None ) : MatchEngine = new MatchEngineImpl(referencePrice)
 }

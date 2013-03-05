@@ -8,6 +8,8 @@ package org.exchange.model
  * This class is stateful and thus not thread safe.
  *
  * @param isin ID of security
+ * @param buyOrders bids that should be matched, by default empty list
+ * @param sellOrders asks that should be matched, by default empty list
  *
  * @author ratzlow@gmail.com
  * @since 2012-12-31

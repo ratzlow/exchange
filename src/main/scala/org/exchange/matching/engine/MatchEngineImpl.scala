@@ -8,18 +8,28 @@ import scala.Option
 /**
  * Match the orders against each other. First orders will be ordered with orders nearest to the market first. This is
  * defined by various rules that determine what is "nearest to the market".
+ * Several parts of the algorithms are pluggable because they depend on in what state the orderbook is e.g.
+ * - continuous trading
+ * - auction
  *
  * @param referencePrice if provided will be consulted in good price check. Used in auction matching. Default is None.
  *
  * @author ratzlow@gmail.com
  * @since 2013-01-12
  */
-class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends MatchEngine {
+// TODO (FRa) : (FRa) : extract ref price and make it part of injected matching strategy
+private[engine] class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends MatchEngine {
 
   //
   // API entry point
   //
 
+  /**
+   * Match the orders of given book.
+   *
+   * @param orderbook with the orders before orders were matched.
+   * @return the result of the matching
+   */
   override def balance(orderbook: Orderbook) : MatchResult = {
     //TODO (FRa) : (FRa) : move ordering of orders to insertion time according to price/time prio
     val orderedBuyOrders: List[Order] = orderbook.buyOrders.sortWith(_.price > _.price)
@@ -31,31 +41,33 @@ class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends Match
   // internal impl
   //
 
-  private def balance( buyOrders: List[Order], sellOrders: List[Order],
-                       previousExecutions : List[Execution] = List.empty ) : MatchResult = {
+  private def balance(buyOrders: List[Order], sellOrders: List[Order],
+                      previousExecutions: List[Execution] = List.empty): MatchResult = {
 
-    // TODO (FRa) : (FRa) : in absence of return stmt is it possible to write code like:
-    // if (!precondition) return -> avoids complexity of body
-    if (!buyOrders.isEmpty && !sellOrders.isEmpty) {
+    if (buyOrders.isEmpty || sellOrders.isEmpty)
+      new MatchResult(new Orderbook("???", buyOrders, sellOrders), previousExecutions)
+
+    else {
       val buy: Order = buyOrders.head
-          val sell: Order = sellOrders.head
-          val optionalExec: Option[Execution] = execute(buy, sell)
+      val sell: Order = sellOrders.head
+      val optionalExec: Option[Execution] = execute(buy, sell)
 
-          optionalExec match {
-            // orders couldn't be matched because they are to far from the market, so stop matching
-            case None =>
-              // TODO (FRa) : (FRa) : add isin
-              new MatchResult(new Orderbook("??", buyOrders, sellOrders), previousExecutions)
+      optionalExec match {
+        // orders couldn't be matched because they are to far from the market, so stop matching
+        case None =>
+          // TODO (FRa) : (FRa) : add isin
+          new MatchResult(new Orderbook("??", buyOrders, sellOrders), previousExecutions)
 
-            // orders were matched
-            case Some(execution) =>
-              val leftBuys = unmatchedOrders( execution.buy, buyOrders.tail, execution.executionSize )
-              val leftSells = unmatchedOrders( execution.sell, sellOrders.tail, execution.executionSize )
-              val executions = execution :: previousExecutions
-              // TODO (FRa) : (FRa) : check if this is really tail recursive -> would otherwise risk StackOverflow
-              balance( leftBuys, leftSells, executions )
-          }
-    } else new MatchResult( new Orderbook("???", buyOrders, sellOrders), previousExecutions)
+        // orders were matched
+        case Some(execution) =>
+          val leftBuys = unmatchedOrders(execution.buy, buyOrders.tail, execution.executionSize)
+          val leftSells = unmatchedOrders(execution.sell, sellOrders.tail, execution.executionSize)
+          val executions = execution :: previousExecutions
+          // TODO (FRa) : (FRa) : check if this is really tail recursive -> would otherwise risk StackOverflow
+          // TODO (FRa) : (FRa) : looks like the list of executions can be left out as param
+          balance(leftBuys, leftSells, executions)
+      }
+    }
   }
 
 

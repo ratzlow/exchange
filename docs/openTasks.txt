@@ -4,4 +4,12 @@ make matching rules injectable strategies as traits (auction vs. cont trading)
 restrict visibility to packages
 comment domain model
 move all tests to FunSuite to produce better output in IDE
-use proper date time API -> check with Mathias
+execute with 1e6 orders to check for stack overflow on recursive algos
+
+@Mathias:
+-use proper date time API
+-in absence of return stmt is it possible to write code like:  if (!precondition) return -> avoids complexity of body
+
+
+
+

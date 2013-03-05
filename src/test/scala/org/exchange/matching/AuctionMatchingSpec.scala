@@ -7,7 +7,7 @@ import org.exchange.model.Orderbook
 import scala.Some
 
 /**
- * TODO: comment
+ * TODO: move test cases to FunTest to get better feedback
  *
  * @author ratzlow@gmail.com
  * @since 2013-02-12

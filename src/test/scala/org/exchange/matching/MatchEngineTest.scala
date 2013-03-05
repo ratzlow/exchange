@@ -34,7 +34,8 @@ class MatchEngineTest extends FunSuite with GivenWhenThen {
 
     expectResult(200)(balancing.auctionPrice.get)
     expectResult(700)(balancing.executableQuantity)
-    // TODO (FRa) : (FRa) : => assert orderbook is empty!
+    expectResult(0)(balancing.orderbook.buyOrders.size)
+    expectResult(0)(balancing.orderbook.sellOrders.size)
     expectResult(0)(balancing.askSurplus)
     expectResult(0)(balancing.bidSurplus)
   }
@@ -135,7 +136,7 @@ class MatchEngineTest extends FunSuite with GivenWhenThen {
   }
 
 
-  test("7b) partial execution of an order within the opening auciton") {
+  test("7b) partial execution of an order within the opening auction") {
     Given("The auction is opened with an auction price and orders need to be matched. " +
           "Time priority is used to execute one fully and one partially")
     val orderbook = new Orderbook(isin)
@@ -152,7 +153,7 @@ class MatchEngineTest extends FunSuite with GivenWhenThen {
     Then("Remaining shares will be transfered into continous trading if order is not restricted to auctions only?")
   }
 
-  // TODO (FRa) : (FRa) : use implicite?!
+  // TODO (FRa) : (FRa) : use implicite or use Scala data wrapper?!
   private def createTimestamp(hour: Int, min: Int) : Date = {
     val cal: Calendar = new GregorianCalendar(2013, Calendar.FEBRUARY, 18, hour, min)
     cal.getTime
