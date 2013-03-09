@@ -41,7 +41,15 @@ class Auction(orderbook: Orderbook) {
     }
 
     // match on all limits greater zero -> side effect: populate limit:match map
-    val auctions: Set[AuctionMatch] = possibleLimits.filter(_ > 0).map( matchByLimit(_) )
+    val limitAuctions: Set[AuctionMatch] = possibleLimits.filter(_ > 0).map( matchByLimit(_) )
+
+    // TODO (FRa) : (FRa) : double check case for this auction on test and integrate in upper iteration
+    val auctions: Set[AuctionMatch] = if ( referencePrice.isDefined && !isOrderbookWithLimitOrders) {
+                                          val matchEngine = MatchEngine()
+                                          val balanced: MatchResult = matchEngine.balance(orderbook)
+                                          limitAuctions + new AuctionMatch(referencePrice.get, balanced.executions,
+                                                                            balanced.orderbook)
+                                      } else limitAuctions
 
     create( referencePrice, auctions.toList )
   }
@@ -89,13 +97,7 @@ class Auction(orderbook: Orderbook) {
           executableQuantity = 0
         )
       }
-      case Some(x) if (!isOrderbookWithLimitOrders) => {
-        // TODO (FRa) : (FRa) : refactor! to conduct()
-        val matchEngine = MatchEngine()
-        val balanced: MatchResult = matchEngine.balance(orderbook)
-        val auctionMatch = new AuctionMatch(referencePrice.get, balanced.executions, balanced.orderbook)
-        create(referencePrice, Some(auctionMatch))
-      }
+
       case _ => throw new AuctionException("Unhandled combination isOrderbookWithLimitOrders = " +
                   isOrderbookWithLimitOrders + " referencePrice = " + referencePrice)
     }

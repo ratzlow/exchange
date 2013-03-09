@@ -1,6 +1,6 @@
 package org.exchange.matching
 
-import auction.{AuctionResult, Auction}
+import auction.{AuctionException, AuctionResult, Auction}
 import org.scalatest.{GivenWhenThen, FunSuite}
 import org.exchange.model._
 import org.exchange.model.Orderbook
@@ -13,7 +13,7 @@ import java.util.{GregorianCalendar, Calendar, Date}
  *
  * @author fratzlow
  */
-class MatchEngineTest extends FunSuite with GivenWhenThen {
+class AuctionMatchTest extends FunSuite with GivenWhenThen {
 
   private val isin: String = "CocaCola"
 
@@ -109,6 +109,49 @@ class MatchEngineTest extends FunSuite with GivenWhenThen {
     expectResult(199){Auction(orderbook).conduct(Option(200)).auctionPrice.get}
     expectResult(202){Auction(orderbook).conduct(Option(201)).auctionPrice.get}
     expectResult(202){Auction(orderbook).conduct(Option(202)).auctionPrice.get}
+  }
+
+
+  test("5) There are several possible limits an surplus on hand") {
+
+    Given("The orderbook is setup with 2 orders on buy and sell side")
+    val orderbook = Orderbook(isin)
+    orderbook += new Order(Side.BUY, OrderType.LIMIT, 300, 202, isin)
+    orderbook += new Order(Side.BUY, OrderType.LIMIT, 200, 201, isin)
+    orderbook += new Order(Side.SELL, OrderType.LIMIT, 300, 199, isin)
+    orderbook += new Order(Side.SELL, OrderType.LIMIT, 200, 198, isin)
+
+    // reference : expected auction price
+    val prices = Map( 200 -> 201, 202 -> 201, 198 -> 199 )
+    for ( (referencePrice, expectedAuctionPrice) <- prices ) {
+      When("reference price is EUR " + referencePrice)
+      val auctionPrice = Auction(orderbook).conduct(Some(referencePrice) ).auctionPrice.get
+      expectResult(expectedAuctionPrice)(auctionPrice)
+      Then("the auction price will " + expectedAuctionPrice + " EUR")
+    }
+  }
+
+
+  test("6) Only market orders are executable in the order book") {
+    Given("The orderbook is setup with 1 orders on buy and sell side")
+    val orderbook = Orderbook(isin)
+    orderbook += Order(Side.BUY, OrderType.MARKET, 900, isin)
+    orderbook += Order(Side.SELL, OrderType.MARKET, 800, isin)
+
+    And("No limit can serve as a price indicator")
+    this.intercept[AuctionException]{
+      Auction(orderbook).conduct()
+    }
+    Then("Auction cannot be conducted and explod")
+
+    When("Reference price is provided")
+    val referencePrice: BigDecimal = 123
+    val conducted: AuctionResult = Auction(orderbook).conduct(Some(referencePrice))
+    expectResult(referencePrice)(conducted.auctionPrice.get)
+    expectResult(0)(conducted.askSurplus)
+    expectResult(100)(conducted.bidSurplus)
+    expectResult(800)(conducted.executableQuantity)
+    Then("The auction Price == reference price and orders could be matched")
   }
 
 

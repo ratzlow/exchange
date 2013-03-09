@@ -4,6 +4,7 @@ import org.exchange.model._
 import org.exchange.model.Orderbook
 import org.exchange.model.Order
 import scala.Option
+import annotation.tailrec
 
 /**
  * Match the orders against each other. First orders will be ordered with orders nearest to the market first. This is
@@ -18,6 +19,7 @@ import scala.Option
  * @since 2013-01-12
  */
 // TODO (FRa) : (FRa) : extract ref price and make it part of injected matching strategy
+//TODO (FRa) : (FRa) : move ordering of orders to insertion time according to price/time prio
 private[engine] class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends MatchEngine {
 
   //
@@ -31,21 +33,22 @@ private[engine] class MatchEngineImpl( referencePrice: Option[BigDecimal] = None
    * @return the result of the matching
    */
   override def balance(orderbook: Orderbook) : MatchResult = {
-    //TODO (FRa) : (FRa) : move ordering of orders to insertion time according to price/time prio
     val orderedBuyOrders: List[Order] = orderbook.buyOrders.sortWith(_.price > _.price)
     val orderedSellOrders: List[Order] = orderbook.sellOrders.sortWith(_.price < _.price)
-    balance(orderedBuyOrders, orderedSellOrders, Nil)
+    balance(orderbook.isin, orderedBuyOrders, orderedSellOrders, Nil)
   }
 
   //
   // internal impl
   //
 
-  private def balance(buyOrders: List[Order], sellOrders: List[Order],
+  @tailrec
+  private def balance(isin: String,
+                      buyOrders: List[Order], sellOrders: List[Order],
                       previousExecutions: List[Execution] = List.empty): MatchResult = {
 
     if (buyOrders.isEmpty || sellOrders.isEmpty)
-      new MatchResult(new Orderbook("???", buyOrders, sellOrders), previousExecutions)
+      new MatchResult(new Orderbook(isin, buyOrders, sellOrders), previousExecutions)
 
     else {
       val buy: Order = buyOrders.head
@@ -55,17 +58,14 @@ private[engine] class MatchEngineImpl( referencePrice: Option[BigDecimal] = None
       optionalExec match {
         // orders couldn't be matched because they are to far from the market, so stop matching
         case None =>
-          // TODO (FRa) : (FRa) : add isin
-          new MatchResult(new Orderbook("??", buyOrders, sellOrders), previousExecutions)
+          new MatchResult(new Orderbook(isin, buyOrders, sellOrders), previousExecutions)
 
         // orders were matched
         case Some(execution) =>
           val leftBuys = unmatchedOrders(execution.buy, buyOrders.tail, execution.executionSize)
           val leftSells = unmatchedOrders(execution.sell, sellOrders.tail, execution.executionSize)
           val executions = execution :: previousExecutions
-          // TODO (FRa) : (FRa) : check if this is really tail recursive -> would otherwise risk StackOverflow
-          // TODO (FRa) : (FRa) : looks like the list of executions can be left out as param
-          balance(leftBuys, leftSells, executions)
+          balance(isin, leftBuys, leftSells, executions)
       }
     }
   }
@@ -110,8 +110,8 @@ private[engine] class MatchEngineImpl( referencePrice: Option[BigDecimal] = None
   /**
    * Check if the prices for both orders are acceptable to each other.
    *
-   * @param one
-   * @param other
+   * @param one side of the orderbook
+   * @param other side of the orderbook
    * @return
    */
   def isGoodExecutionPrice(one: Order, other: Order): Boolean = {

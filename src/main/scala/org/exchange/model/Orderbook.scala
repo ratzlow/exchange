@@ -23,9 +23,8 @@ case class Orderbook( isin: String, var buyOrders: List[Order] = List.empty, var
    * @param order that should be listed in orderbook
    */
   def +=( order: Order ) {
-    // TODO (FRa) : (FRa) : this not null check looks strange
-    require( order != null )
-    require( order.side != null )
+    require( !Option(order).isEmpty )
+    require( !Option(order.side).isEmpty )
     require( order.isin == isin )
 
     val side: Side.Side = order.side
