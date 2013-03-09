@@ -25,16 +25,3 @@ Or to simply run all the tests:
 Links
 -----
 * CI - <https://travis-ci.org/suls/exchange>
-
-Open tasks
------------
-* add logging
-* add matching for market, stoplimit orders against limit orders (define what good price means in this combination)
-* make matching rules injectable strategies as traits (auction vs. cont trading)
-* move all tests to FunSuite to produce better output in IDE (fix IDE plugin?)
-* execute with 1e6 orders to check for stack overflow on recursive algos
-* use proper date time API
-
-Open questions
---------------
-* in absence of return stmt is it possible to write code like:  if (!precondition) return -> avoids complexity of body

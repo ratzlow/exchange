@@ -2,7 +2,7 @@ package org.exchange.matching.auction
 
 import org.exchange.model.{OrderType, Order, Orderbook}
 
-import org.exchange.matching.engine.{MatchEngine, MatchResult, MatchEngineImpl}
+import org.exchange.matching.engine.{MatchEngine, MatchResult}
 
 /**
  * At a auction, participants place orders to buy or sell units at certain buying or selling prices. Orders collected
@@ -34,25 +34,25 @@ class Auction(orderbook: Orderbook) {
       ((orderbook.sellOrders.map( _.price ) ++ orderbook.buyOrders.map(_.price))).toSet
 
     // function literal that matches the order book for a given limit
-    val matchByLimit = (limit: BigDecimal) => {
-      val matchEngine = MatchEngine(Some(limit))
+    val matchByLimit = (matchLimit: Option[BigDecimal], derivedLimit: BigDecimal) => {
+      val matchEngine = MatchEngine(matchLimit)
       val balanced: MatchResult = matchEngine.balance(orderbook)
-      new AuctionMatch(limit, balanced.executions, balanced.orderbook)
+      new AuctionMatch(derivedLimit, balanced.executions, balanced.orderbook)
     }
 
-    // match on all limits greater zero -> side effect: populate limit:match map
-    val limitAuctions: Set[AuctionMatch] = possibleLimits.filter(_ > 0).map( matchByLimit(_) )
 
-    // TODO (FRa) : (FRa) : double check case for this auction on test and integrate in upper iteration
+    // match on all limits greater zero -> side effect: populate limit:match map
+    val limitAuctions: Set[AuctionMatch] = possibleLimits.filter(_ > 0).map( limit => matchByLimit(Some(limit), limit) )
+
+    // execute for case we have no limit order given but can use the reference price as price indicator
     val auctions: Set[AuctionMatch] = if ( referencePrice.isDefined && !isOrderbookWithLimitOrders) {
-                                          val matchEngine = MatchEngine()
-                                          val balanced: MatchResult = matchEngine.balance(orderbook)
-                                          limitAuctions + new AuctionMatch(referencePrice.get, balanced.executions,
-                                                                            balanced.orderbook)
+                                          val am = matchByLimit(None, referencePrice.get)
+                                          limitAuctions + am
                                       } else limitAuctions
 
     create( referencePrice, auctions.toList )
   }
+
 
   //-----------------------------------------------------------------------------------
   // derive the parameters of the auction for given book an optional reference price

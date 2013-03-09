@@ -155,7 +155,7 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
   }
 
 
-  test("7a) There is no elible limit as there are only orders in the book which are not executable") {
+  test("7a) There is no eligible limit as there are only orders in the book which are not executable") {
     val orderbook = new Orderbook(isin)
     Given("Orders in book are not crossing")
     orderbook += new Order(Side.BUY, OrderType.HIDDEN, 80, 200, isin)
