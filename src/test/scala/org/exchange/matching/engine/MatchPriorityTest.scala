@@ -2,8 +2,7 @@ package org.exchange.matching.engine
 
 import org.scalatest.{GivenWhenThen, FunSuite}
 import org.scala_tools.time.Imports._
-import org.exchange.model.{OrderType, Order, Side}
-import org.exchange.model.Side._
+import org.exchange.common.OrderGenerator._
 
 /**
  * Verify several operations that can be performed on the orderbook.
@@ -56,11 +55,4 @@ class MatchPriorityTest extends FunSuite with GivenWhenThen {
     expectResult(order_2)(sortedOrderAr(3))
     Then("The order with the lowest price should be on top of the book")
   }
-
-
-  private def newBuy(size: Int, price: BigDecimal, timestamp: DateTime) = newOrder(size, price, timestamp, Side.BUY)
-  private def newSell(size: Int, price: BigDecimal, timestamp: DateTime) = newOrder(size, price, timestamp, Side.SELL)
-
-  private def newOrder(size: Int, price: BigDecimal, timestamp: DateTime, side: Side) =
-    new Order(side, OrderType.LIMIT, size, price, "CoCa", timestamp = timestamp)
 }

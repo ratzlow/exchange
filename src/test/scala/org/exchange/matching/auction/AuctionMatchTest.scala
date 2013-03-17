@@ -5,6 +5,7 @@ import org.exchange.model._
 import org.exchange.model.Orderbook
 import org.scala_tools.time.Imports._
 import org.exchange.matching.engine.MatchResult
+import org.exchange.common.OrderGenerator
 
 /**
  * Calculate matching price based on current order book. This test expects all orders to be limit orders even though
@@ -16,19 +17,20 @@ import org.exchange.matching.engine.MatchResult
 class AuctionMatchTest extends FunSuite with GivenWhenThen {
 
   private val isin: String = "CocaCola"
+  private val orderGenerator = new OrderGenerator(isin)
 
   test("1) Exactly one buy limit. Sizes on both sides are equal so all orders should be matched.") {
     val orderbook = new Orderbook(isin)
 
     // Bid/Buy side
-    orderbook += newBuy(200, 202)
-    orderbook += newBuy(200, 201)
-    orderbook += newBuy(300, 200)
+    orderbook += orderGenerator.newBuy(200, 202)
+    orderbook += orderGenerator.newBuy(200, 201)
+    orderbook += orderGenerator.newBuy(300, 200)
 
     // Ask/Sell side
-    orderbook += newSell(400, 197)
-    orderbook += newSell(200, 198)
-    orderbook += newSell(100, 200)
+    orderbook += orderGenerator.newSell(400, 197)
+    orderbook += orderGenerator.newSell(200, 198)
+    orderbook += orderGenerator.newSell(100, 200)
 
     val balancing: AuctionConditions = Auction(orderbook).deriveAuctionConditions()
 
@@ -46,12 +48,12 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
     val expectedOrderbookSellSize = 500
 
     // Bid/Buy side
-    orderbook += newBuy(400, 202)
-    orderbook += newBuy(200, 201)
+    orderbook += orderGenerator.newBuy(400, 202)
+    orderbook += orderGenerator.newBuy(200, 201)
 
     // Ask/Sell side
-    orderbook += newSell(300, 199)
-    orderbook += newSell(200, 198)
+    orderbook += orderGenerator.newSell(300, 199)
+    orderbook += orderGenerator.newSell(200, 198)
     expectResult(expectedOrderbookBuySize)( orderbook.buyOrders.foldLeft(0)( _ + _.orderQty) )
     expectResult(expectedOrderbookSellSize)( orderbook.sellOrders.foldLeft(0)( _ + _.orderQty) )
 
@@ -70,12 +72,12 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
     val expectedOrderbookSellSize = 600
 
     // Bid/Buy side
-    orderbook += newBuy(300, 202)
-    orderbook += newBuy(200, 201)
+    orderbook += orderGenerator.newBuy(300, 202)
+    orderbook += orderGenerator.newBuy(200, 201)
 
     // Ask/Sell side
-    orderbook += newSell(400, 199)
-    orderbook += newSell(200, 198)
+    orderbook += orderGenerator.newSell(400, 199)
+    orderbook += orderGenerator.newSell(200, 198)
     expectResult(expectedOrderbookBuySize)( orderbook.buyOrders.foldLeft(0)( _ + _.orderQty) )
     expectResult(expectedOrderbookSellSize)( orderbook.sellOrders.foldLeft(0)( _ + _.orderQty) )
 
@@ -210,7 +212,4 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
   private def createTimestamp(hour: Int, min: Int) : DateTime = {
     DateTime.now.withHour(hour).withMinuteOfHour(min)
   }
-
-  private def newBuy(size: Int, price: Int) = new Order(side = Side.BUY, orderQty = size, price = price, isin = isin)
-  private def newSell(size: Int, price: Int) = new Order(side = Side.SELL, orderQty = size, price = price, isin = isin)
 }
