@@ -2,7 +2,7 @@ package org.exchange.model
 
 import Side._
 import OrderType._
-import java.util.Date
+import org.scala_tools.time.Imports._
 
 /**
  * The order submitted by the trader. An order of buy side needs to be matched against order(s) of the sell side.
@@ -17,7 +17,7 @@ import java.util.Date
  */
 case class Order( side: Side, orderType: OrderType = OrderType.LIMIT,
                   orderQty: Int, price: BigDecimal, isin: String, cummulatedQty: Int = 0,
-                  timestamp: Date = new Date()) {
+                  timestamp: DateTime = DateTime.now) {
 
   /**
    * In the case of partial execution part of the order is not yet filled, so left open for further execution or until
@@ -31,7 +31,7 @@ case class Order( side: Side, orderType: OrderType = OrderType.LIMIT,
 
   /**
    * @param executedShareSize number of shares executed
-   * @return updated Order with increased filled fullSize
+   * @return updated Order with increased filled size
    */
   def +=( executedShareSize: Int ) : Order = this.copy(cummulatedQty = this.cummulatedQty + executedShareSize)
 

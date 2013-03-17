@@ -1,10 +1,10 @@
-package org.exchange.matching
+package org.exchange.matching.auction
 
-import auction.{AuctionException, AuctionResult, Auction}
 import org.scalatest.{GivenWhenThen, FunSuite}
 import org.exchange.model._
 import org.exchange.model.Orderbook
-import java.util.{GregorianCalendar, Calendar, Date}
+import org.scala_tools.time.Imports._
+import org.exchange.matching.engine.MatchResult
 
 /**
  * Calculate matching price based on current order book. This test expects all orders to be limit orders even though
@@ -30,7 +30,7 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
     orderbook += newSell(200, 198)
     orderbook += newSell(100, 200)
 
-    val balancing: AuctionResult = Auction(orderbook).conduct()
+    val balancing: AuctionConditions = Auction(orderbook).deriveAuctionConditions()
 
     expectResult(200)(balancing.auctionPrice.get)
     expectResult(700)(balancing.executableQuantity)
@@ -55,7 +55,7 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
     expectResult(expectedOrderbookBuySize)( orderbook.buyOrders.foldLeft(0)( _ + _.orderQty) )
     expectResult(expectedOrderbookSellSize)( orderbook.sellOrders.foldLeft(0)( _ + _.orderQty) )
 
-    val matchResult = Auction(orderbook).conduct()
+    val matchResult = Auction(orderbook).deriveAuctionConditions()
 
     expectResult(201)(matchResult.auctionPrice.get)
     expectResult(100)(matchResult.bidSurplus)
@@ -79,7 +79,7 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
     expectResult(expectedOrderbookBuySize)( orderbook.buyOrders.foldLeft(0)( _ + _.orderQty) )
     expectResult(expectedOrderbookSellSize)( orderbook.sellOrders.foldLeft(0)( _ + _.orderQty) )
 
-    val matchResult = Auction(orderbook).conduct()
+    val matchResult = Auction(orderbook).deriveAuctionConditions()
 
     expectResult(199)(matchResult.auctionPrice.get)
     expectResult(0)(matchResult.bidSurplus)
@@ -105,10 +105,10 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
     orderbook += marketSell
     orderbook += limitSell
 
-    expectResult(199){Auction(orderbook).conduct(Option(199)).auctionPrice.get}
-    expectResult(199){Auction(orderbook).conduct(Option(200)).auctionPrice.get}
-    expectResult(202){Auction(orderbook).conduct(Option(201)).auctionPrice.get}
-    expectResult(202){Auction(orderbook).conduct(Option(202)).auctionPrice.get}
+    expectResult(199){Auction(orderbook).deriveAuctionConditions(Option(199)).auctionPrice.get}
+    expectResult(199){Auction(orderbook).deriveAuctionConditions(Option(200)).auctionPrice.get}
+    expectResult(202){Auction(orderbook).deriveAuctionConditions(Option(201)).auctionPrice.get}
+    expectResult(202){Auction(orderbook).deriveAuctionConditions(Option(202)).auctionPrice.get}
   }
 
 
@@ -125,7 +125,7 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
     val prices = Map( 200 -> 201, 202 -> 201, 198 -> 199 )
     for ( (referencePrice, expectedAuctionPrice) <- prices ) {
       When("reference price is EUR " + referencePrice)
-      val auctionPrice = Auction(orderbook).conduct(Some(referencePrice) ).auctionPrice.get
+      val auctionPrice = Auction(orderbook).deriveAuctionConditions(Some(referencePrice) ).auctionPrice.get
       expectResult(expectedAuctionPrice)(auctionPrice)
       Then("the auction price will " + expectedAuctionPrice + " EUR")
     }
@@ -140,13 +140,13 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
 
     And("No limit can serve as a price indicator")
     this.intercept[AuctionException]{
-      Auction(orderbook).conduct()
+      Auction(orderbook).deriveAuctionConditions()
     }
     Then("Auction cannot be conducted and explod")
 
     When("Reference price is provided")
     val referencePrice: BigDecimal = 123
-    val conducted: AuctionResult = Auction(orderbook).conduct(Some(referencePrice))
+    val conducted: AuctionConditions = Auction(orderbook).deriveAuctionConditions(Some(referencePrice))
     expectResult(referencePrice)(conducted.auctionPrice.get)
     expectResult(0)(conducted.askSurplus)
     expectResult(100)(conducted.bidSurplus)
@@ -163,7 +163,7 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
     orderbook += new Order(Side.SELL, OrderType.LIMIT, 80, 201, isin)
 
     When("The auction is conducted")
-    val conducted: AuctionResult = Auction(orderbook).conduct()
+    val conducted: AuctionConditions = Auction(orderbook).deriveAuctionConditions()
 
     expectResult(None){conducted.auctionPrice}
     Then("No auction price can be derived so only highest visible bid limit")
@@ -182,27 +182,35 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
   test("7b) partial execution of an order within the opening auction") {
     Given("The auction is opened with an auction price and orders need to be matched. " +
           "Time priority is used to execute one fully and one partially")
+
     val orderbook = new Orderbook(isin)
-    orderbook += new Order( Side.BUY, OrderType.LIMIT, 300, 200, isin, timestamp = createTimestamp(9, 0))
-    orderbook += new Order( Side.BUY, OrderType.LIMIT, 300, 200, isin, timestamp = createTimestamp(9, 1))
+    val buy_1: Order = new Order(Side.BUY, OrderType.LIMIT, 300, 200, isin, timestamp = createTimestamp(9, 0))
+    val buy_2: Order = new Order(Side.BUY, OrderType.LIMIT, 300, 200, isin, timestamp = createTimestamp(9, 1))
+
+    orderbook += buy_1
+    orderbook += buy_2
     orderbook += new Order( Side.SELL, OrderType.LIMIT, 400, 200, isin, timestamp = createTimestamp(9, 0))
 
-    When("BUY orders have different timestamp and same price")
+    val auctionResult: AuctionConditions = Auction(orderbook).deriveAuctionConditions()
+    val actualAuctionPrice: BigDecimal = auctionResult.auctionPrice.get
+    expectResult(200)(actualAuctionPrice)
 
-    Then("earlier order must have precedence and gets fully executed")
-
+    val matchResult: MatchResult = Auction(orderbook).conduct(Some(actualAuctionPrice))
+    expectResult( 0 )(matchResult.orderbook.sellOrders.size)
+    expectResult( 1 )(matchResult.orderbook.buyOrders.size)
 
     When("Second buy order only gets partially executed")
+    val unmatchedBuyOrder = matchResult.orderbook.buyOrders.head
+    expectResult(200)(unmatchedBuyOrder.openQty)
+    expectResult(100)(unmatchedBuyOrder.cummulatedQty)
+    expectResult(buy_2.timestamp)(unmatchedBuyOrder.timestamp)
     Then("Remaining shares will be transfered into continous trading if order is not restricted to auctions only?")
   }
 
-  // TODO (FRa) : (FRa) : use implicite or use Scala data wrapper?!
-  private def createTimestamp(hour: Int, min: Int) : Date = {
-    val cal: Calendar = new GregorianCalendar(2013, Calendar.FEBRUARY, 18, hour, min)
-    cal.getTime
+  private def createTimestamp(hour: Int, min: Int) : DateTime = {
+    DateTime.now.withHour(hour).withMinuteOfHour(min)
   }
 
-
-  private def newBuy(fullSize: Int, price: Int) = new Order(side = Side.BUY, orderQty = fullSize, price = price, isin = isin)
+  private def newBuy(size: Int, price: Int) = new Order(side = Side.BUY, orderQty = size, price = price, isin = isin)
   private def newSell(size: Int, price: Int) = new Order(side = Side.SELL, orderQty = size, price = price, isin = isin)
 }

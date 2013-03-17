@@ -33,8 +33,8 @@ private[engine] class MatchEngineImpl( referencePrice: Option[BigDecimal] = None
    * @return the result of the matching
    */
   override def balance(orderbook: Orderbook) : MatchResult = {
-    val orderedBuyOrders: List[Order] = orderbook.buyOrders.sortWith(_.price > _.price)
-    val orderedSellOrders: List[Order] = orderbook.sellOrders.sortWith(_.price < _.price)
+    val orderedBuyOrders: List[Order] = orderbook.buyOrders.sortWith(MatchPriority.buyPriceTimePriority)
+    val orderedSellOrders: List[Order] = orderbook.sellOrders.sortWith(MatchPriority.sellPriceTimePriority)
     balance(orderbook.isin, orderedBuyOrders, orderedSellOrders, Nil)
   }
 

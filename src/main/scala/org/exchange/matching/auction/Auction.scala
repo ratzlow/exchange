@@ -23,12 +23,21 @@ class Auction(orderbook: Orderbook) {
   //
 
   /**
-   * Execute an auction for given orderbook. This will determine an auction price and several quantities.
+   * Execute the auction and match orders according to #auctionPrice. Orders that couldn't be matched remain in
+   * orderbook for later continuous trading.
+   *
+   * @param auctionPrice price at which orders are matched, default is None
+   */
+  def conduct( auctionPrice: Option[BigDecimal] = None ) : MatchResult = MatchEngine(auctionPrice).balance(orderbook)
+
+
+  /**
+   * Execute a theoretical auction for given orderbook. This will determine an auction price and several quantities.
    *
    * @param referencePrice default is none
    * @return collecting parameter reflecting the result of the auction.
    */
-  def conduct( referencePrice: Option[BigDecimal] = None ) : AuctionResult = {
+  def deriveAuctionConditions( referencePrice: Option[BigDecimal] = None ) : AuctionConditions = {
 
     val possibleLimits: Set[BigDecimal] =
       ((orderbook.sellOrders.map( _.price ) ++ orderbook.buyOrders.map(_.price))).toSet
@@ -59,7 +68,7 @@ class Auction(orderbook: Orderbook) {
   //-----------------------------------------------------------------------------------
 
   private def create( referencePrice: Option[BigDecimal],
-                      auctionMatches: List[AuctionMatch]) : AuctionResult = {
+                      auctionMatches: List[AuctionMatch]) : AuctionConditions = {
 
     // find single limit with highest executable quantity
     val bestAuctions: Set[AuctionMatch] = highestExecutionVolumes(referencePrice, auctionMatches)
@@ -81,7 +90,7 @@ class Auction(orderbook: Orderbook) {
   }
 
 
-  private def createByOrderTypeCheck(referencePrice: Option[BigDecimal], bestAuctions: Set[AuctionMatch]) : AuctionResult = {
+  private def createByOrderTypeCheck(referencePrice: Option[BigDecimal], bestAuctions: Set[AuctionMatch]) : AuctionConditions = {
 
     referencePrice match {
 
@@ -92,7 +101,7 @@ class Auction(orderbook: Orderbook) {
 
         val maxVisibleBidLimit = orderbook.buyOrders.filter(isLimitOrder(_)).maxBy(_.price).price
         val minVisibleAskLimit = orderbook.sellOrders.filter(isLimitOrder(_)).minBy(_.price).price
-        new AuctionResult(orderbook, bidSurplus = 0, askSurplus = 0,
+        new AuctionConditions(orderbook, bidSurplus = 0, askSurplus = 0,
           lowestVisibleAskLimit = Some(minVisibleAskLimit), highestVisibleBidLimit = Some(maxVisibleBidLimit),
           executableQuantity = 0
         )
@@ -106,7 +115,7 @@ class Auction(orderbook: Orderbook) {
 
   private def createByInLimitRangeCheck(referencePrice: BigDecimal,
                                 maxBidSurplusAuction: AuctionMatch,
-                                minAskSurplusAuction: AuctionMatch): AuctionResult = {
+                                minAskSurplusAuction: AuctionMatch): AuctionConditions = {
 
     // check if price is a possible limit -> use this limit as new auction price
     if (maxBidSurplusAuction.limit == referencePrice) {
@@ -130,7 +139,7 @@ class Auction(orderbook: Orderbook) {
 
   private def createByRefPriceComparison(referencePrice: BigDecimal,
                                  maxBidSurplusAuction: AuctionMatch,
-                                 minAskSurplusAuction: AuctionMatch): AuctionResult = {
+                                 minAskSurplusAuction: AuctionMatch): AuctionConditions = {
     require( referencePrice > 0, "Reference price must be > 0: " + referencePrice)
 
     val minPossibleLimit: BigDecimal = minAskSurplusAuction.limit
@@ -146,7 +155,7 @@ class Auction(orderbook: Orderbook) {
   }
 
 
-  private def createBySurplusComparison(referencePrice: Option[BigDecimal], auctionMatches: Set[AuctionMatch]) : AuctionResult = {
+  private def createBySurplusComparison(referencePrice: Option[BigDecimal], auctionMatches: Set[AuctionMatch]) : AuctionConditions = {
     require( auctionMatches.nonEmpty, "Cannot derive price if no valid auction is given!" )
     require( auctionMatches.forall( auctionMatches.head.executableVolume == _.executableVolume),
             "Volumes must be equal but might have different limit prices" )
@@ -173,11 +182,13 @@ class Auction(orderbook: Orderbook) {
 
 
   private def create(referencePrice: Option[BigDecimal], bestAuction: Option[AuctionMatch]) = {
+
     bestAuction match {
       // if no match was provided the orderbook must have been unmodified so we can take input
-      case None => new AuctionResult( orderbook, referencePrice, None, 0, 0, 0)
+      case None => new AuctionConditions( orderbook, referencePrice, None, 0, 0, 0)
+
       // orderbook resulted in matches so take orderbook we unexecutable orders
-      case Some(m) => new AuctionResult(m.orderbook, referencePrice, Some(m.limit),
+      case Some(m) => new AuctionConditions(m.orderbook, referencePrice, Some(m.limit),
                                         m.bidSurplus, m.askSurplus, m.executableVolume)
     }
   }

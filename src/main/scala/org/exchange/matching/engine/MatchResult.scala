@@ -3,7 +3,10 @@ package org.exchange.matching.engine
 import org.exchange.model.{Execution, Orderbook}
 
 /**
- * TODO: comment
+ * The outcome of a matched orderbook.
+ *
+ * @param orderbook with unmatched or partially matched orders
+ * @param executions matched orders or by default empty list
  *
  * @author ratzlow@gmail.com
  * @since 2013-02-24
