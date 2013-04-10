@@ -1,4 +1,4 @@
-exchange [![Build Status](https://travis-ci.org/suls/exchange.png?branch=master)](https://travis-ci.org/suls/exchange)
+exchange [![Build Status](https://travis-ci.org/ratzlow/exchange.png?branch=master)](https://travis-ci.org/ratzlow/exchange)
 ========
 
 Playground for some Scala code. Goal is the implementation of a fully working stock exchange that supports auctions,
@@ -16,7 +16,7 @@ Usage
 -----
 To create the project files for your IDE (eg Intellij):
 
-	sbt gen-idea
+    sbt gen-idea
 	                                                        
 Or to simply run all the tests:
 
@@ -24,4 +24,4 @@ Or to simply run all the tests:
 
 Links
 -----
-* CI - <https://travis-ci.org/suls/exchange>
+* CI - <https://travis-ci.org/ratzlow/exchange>
