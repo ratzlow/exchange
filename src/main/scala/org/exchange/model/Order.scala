@@ -1,6 +1,5 @@
 package org.exchange.model
 
-import OrderType._
 import org.scala_tools.time.Imports._
 
 /**
@@ -14,7 +13,7 @@ import org.scala_tools.time.Imports._
  * @param orderType ... how to execute an order (FIX: 40)
  * @param timestamp ... when order was added to orderbook
  */
-case class Order(side: Side, orderType: OrderType = OrderType.LIMIT,
+case class Order(side: Side, orderType: OrderType = Limit,
                  orderQty: Int, price: BigDecimal, isin: String, cummulatedQty: Int = 0,
                  timestamp: DateTime = DateTime.now) {
 
@@ -40,7 +39,7 @@ case class Order(side: Side, orderType: OrderType = OrderType.LIMIT,
 object Order {
 
   def apply(side: Side, orderType: OrderType, orderQty: Int, isin: String): Order = {
-    require(orderType != LIMIT && orderType != STOP_LIMIT, "Must not be an order of limit type!")
+    require(orderType != Limit && orderType != StopLimit, "Must not be an order of limit type!")
     new Order(side, orderType, orderQty, BigDecimal(0), isin, 0)
   }
 }

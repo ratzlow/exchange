@@ -99,8 +99,8 @@ private[engine] class MatchEngineImpl(referencePrice: Option[BigDecimal] = None)
   // TODO (FRa) : (FRa) : make available as strategy for auctions vs. continuous trading
   private def canBeMatched(one: Order, other: Order): Boolean = {
     // only market orders are executable against each other or non-market orders are
-    (one.orderType == OrderType.MARKET && other.orderType == OrderType.MARKET) ||
-      (one.orderType != OrderType.MARKET && other.orderType != OrderType.MARKET)
+    (one.orderType == Market && other.orderType == Market) ||
+      (one.orderType != Market && other.orderType != Market)
   }
 
   //

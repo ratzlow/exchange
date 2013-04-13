@@ -7,10 +7,10 @@ class OrderTest extends FunSuite {
 
 
   test("buy and sell order creation") {
-    val buyOrder = new Order(Buy, OrderType.LIMIT, 20, BigDecimal(100), isin)
+    val buyOrder = new Order(Buy, Limit, 20, BigDecimal(100), isin)
     assert(buyOrder.side == Buy)
 
-    val sellOrder = Order(Sell, OrderType.LIMIT, 20, BigDecimal(100), isin)
+    val sellOrder = Order(Sell, Limit, 20, BigDecimal(100), isin)
     assert(sellOrder.side == Sell)
 
     val orderBook = Orderbook(isin)
@@ -27,7 +27,7 @@ class OrderTest extends FunSuite {
   test("Checking preconditions") {
     val orderBook = Orderbook(isin)
     intercept[IllegalArgumentException] {
-      orderBook += new Order(Buy, OrderType.LIMIT, 1, BigDecimal(1), "wrongIsin")
+      orderBook += new Order(Buy, Limit, 1, BigDecimal(1), "wrongIsin")
     }
   }
 }

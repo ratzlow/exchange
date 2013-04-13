@@ -96,10 +96,10 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
    */
   test("4) There are several possible limits and there is both an ask and bid surplus") {
     val orderbook = new Orderbook(isin)
-    val marketBuy: Order = new Order(Buy, OrderType.MARKET, 100, 0, isin)
-    val marketSell: Order = new Order(Sell, OrderType.MARKET, 100, 0, isin)
-    val limitBuy: Order = new Order(Buy, OrderType.LIMIT, 100, 199, isin)
-    val limitSell: Order = new Order(Sell, OrderType.LIMIT, 100, 202, isin)
+    val marketBuy: Order = new Order(Buy, Market, 100, 0, isin)
+    val marketSell: Order = new Order(Sell, Market, 100, 0, isin)
+    val limitBuy: Order = new Order(Buy, Limit, 100, 199, isin)
+    val limitSell: Order = new Order(Sell, Limit, 100, 202, isin)
 
     orderbook += marketBuy
     orderbook += limitBuy
@@ -126,10 +126,10 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
 
     Given("The orderbook is setup with 2 orders on buy and sell side")
     val orderbook = Orderbook(isin)
-    orderbook += new Order(Buy, OrderType.LIMIT, 300, 202, isin)
-    orderbook += new Order(Buy, OrderType.LIMIT, 200, 201, isin)
-    orderbook += new Order(Sell, OrderType.LIMIT, 300, 199, isin)
-    orderbook += new Order(Sell, OrderType.LIMIT, 200, 198, isin)
+    orderbook += new Order(Buy, Limit, 300, 202, isin)
+    orderbook += new Order(Buy, Limit, 200, 201, isin)
+    orderbook += new Order(Sell, Limit, 300, 199, isin)
+    orderbook += new Order(Sell, Limit, 200, 198, isin)
 
     // reference : expected auction price
     val prices = Map(200 -> 201, 202 -> 201, 198 -> 199)
@@ -145,8 +145,8 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
   test("6) Only market orders are executable in the order book") {
     Given("The orderbook is setup with 1 orders on buy and sell side")
     val orderbook = Orderbook(isin)
-    orderbook += Order(Buy, OrderType.MARKET, 900, isin)
-    orderbook += Order(Sell, OrderType.MARKET, 800, isin)
+    orderbook += Order(Buy, Market, 900, isin)
+    orderbook += Order(Sell, Market, 800, isin)
 
     And("No limit can serve as a price indicator")
     this.intercept[AuctionException] {
@@ -168,9 +168,9 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
   test("7a) There is no eligible limit as there are only orders in the book which are not executable") {
     val orderbook = new Orderbook(isin)
     Given("Orders in book are not crossing")
-    orderbook += new Order(Buy, OrderType.HIDDEN, 80, 200, isin)
-    orderbook += new Order(Buy, OrderType.LIMIT, 80, 199, isin)
-    orderbook += new Order(Sell, OrderType.LIMIT, 80, 201, isin)
+    orderbook += new Order(Buy, Hidden, 80, 200, isin)
+    orderbook += new Order(Buy, Limit, 80, 199, isin)
+    orderbook += new Order(Sell, Limit, 80, 201, isin)
 
     When("The auction is conducted")
     val conducted: AuctionConditions = Auction(orderbook).deriveAuctionConditions()
@@ -200,12 +200,12 @@ class AuctionMatchTest extends FunSuite with GivenWhenThen {
       "Time priority is used to execute one fully and one partially")
 
     val orderbook = new Orderbook(isin)
-    val buy_1: Order = new Order(Buy, OrderType.LIMIT, 300, 200, isin, timestamp = createTimestamp(9, 0))
-    val buy_2: Order = new Order(Buy, OrderType.LIMIT, 300, 200, isin, timestamp = createTimestamp(9, 1))
+    val buy_1: Order = new Order(Buy, Limit, 300, 200, isin, timestamp = createTimestamp(9, 0))
+    val buy_2: Order = new Order(Buy, Limit, 300, 200, isin, timestamp = createTimestamp(9, 1))
 
     orderbook += buy_1
     orderbook += buy_2
-    orderbook += new Order(Sell, OrderType.LIMIT, 400, 200, isin, timestamp = createTimestamp(9, 0))
+    orderbook += new Order(Sell, Limit, 400, 200, isin, timestamp = createTimestamp(9, 0))
 
     val auctionResult: AuctionConditions = Auction(orderbook).deriveAuctionConditions()
     val actualAuctionPrice: BigDecimal = auctionResult.auctionPrice.get

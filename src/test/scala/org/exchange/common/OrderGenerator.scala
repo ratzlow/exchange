@@ -2,7 +2,6 @@ package org.exchange.common
 
 import org.scala_tools.time.Imports._
 import org.exchange.model._
-import org.exchange.model.OrderType._
 import util.Random
 import org.exchange.model.OrderType
 
@@ -20,7 +19,7 @@ case class OrderGenerator(isin: String) {
   def newBuy(size: Int, price: BigDecimal) = new Order(Buy, orderQty = size, price = price, isin = isin)
 
   def newOrders(numberOfOrders: Int, side: Side, sizeRange: (Int, Int), priceRange: (Int, Int),
-                orderTypes: OrderType.OrderType*): Seq[Order] = {
+                orderTypes: OrderType*): Seq[Order] = {
 
     require(!orderTypes.isEmpty)
 
@@ -46,7 +45,7 @@ object OrderGenerator {
   // internal impl
   //
 
-  private def newOrder(side: Side, size: Int, price: BigDecimal, orderType: OrderType = OrderType.LIMIT,
+  private def newOrder(side: Side, size: Int, price: BigDecimal, orderType: OrderType = Limit,
                        timestamp: DateTime = DateTime.now) =
     new Order(side, orderType, size, price, "CoCa", timestamp = timestamp)
 }

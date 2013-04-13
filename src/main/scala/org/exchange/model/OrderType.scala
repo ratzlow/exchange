@@ -8,7 +8,13 @@ package org.exchange.model
  * @author ratzlow@gmail.com
  * @since 2012-12-31
  */
-object OrderType extends Enumeration {
-  type OrderType = Value
-  val MARKET, LIMIT, STOP_LIMIT, HIDDEN = Value
-}
+sealed trait OrderType
+
+case object Market extends OrderType
+
+case object Limit extends OrderType
+
+case object StopLimit extends OrderType
+
+case object Hidden extends OrderType
+
