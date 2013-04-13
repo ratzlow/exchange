@@ -14,22 +14,22 @@ package org.exchange.model
  * @author ratzlow@gmail.com
  * @since 2012-12-31
  */
-case class Orderbook( isin: String, var buyOrders: List[Order] = List.empty, var sellOrders: List[Order] = List.empty) {
-  require( !isin.isEmpty )
+case class Orderbook(isin: String, var buyOrders: List[Order] = List.empty, var sellOrders: List[Order] = List.empty) {
+  require(!isin.isEmpty)
 
   /**
    * Add order to orderbook's buy- or sell orders.
    *
    * @param order that should be listed in orderbook
    */
-  def +=( order: Order ) {
-    require( !Option(order).isEmpty )
-    require( !Option(order.side).isEmpty )
-    require( order.isin == isin )
+  def +=(order: Order) {
+    require(!Option(order).isEmpty)
+    require(!Option(order.side).isEmpty)
+    require(order.isin == isin)
 
-    val side: Side.Side = order.side
-    if ( side == Side.BUY ) buyOrders = order :: buyOrders
-    else if ( side == Side.SELL ) sellOrders = order :: sellOrders
-    else throw new OrderbookException("Unknown order side!")
+    order.side match {
+      case Buy => buyOrders = order :: buyOrders
+      case Sell => sellOrders = order :: sellOrders
+    }
   }
 }

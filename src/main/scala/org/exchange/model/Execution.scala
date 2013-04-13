@@ -13,17 +13,19 @@ import com.typesafe.scalalogging.slf4j.{Logging, Logger}
  * @param buy buy side order
  * @param sell sell side order
  */
-case class Execution(buy: Order, sell: Order, executionSize : Int) extends Logging {
-  require( buy.side == Side.BUY )
-  require( sell.side == Side.SELL )
-  logger.debug( buy.toString + " <==> " + sell + " execSize = " + executionSize)
-  require( buy.openQty > 0 && sell.openQty > 0 && executionSize > 0)
+case class Execution(buy: Order, sell: Order, executionSize: Int) extends Logging {
+  require(buy.side == Buy)
+  require(sell.side == Sell)
+  logger.debug(buy.toString + " <==> " + sell + " execSize = " + executionSize)
+  require(buy.openQty > 0 && sell.openQty > 0 && executionSize > 0)
   assertSufficientSize(buy)
   assertSufficientSize(sell)
 
   private def assertSufficientSize(order: Order) {
-    require( order.openQty >= executionSize, order.side + ".openyQty = " + order.openQty + " execSize = " + executionSize )
+    require(order.openQty >= executionSize, order.side + ".openyQty = " + order.openQty + " execSize = " + executionSize)
   }
 
-  override def toString : String = { "buy = " + buy + " <==> " + sell + " @#"  + executionSize }
+  override def toString: String = {
+    "buy = " + buy + " <==> " + sell + " @#" + executionSize
+  }
 }
