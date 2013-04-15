@@ -24,7 +24,7 @@ Or to simply run all the tests:
 
 For the test coverage, run:
 
-    sbt scct-test
+    sbt scct:test
 
 And check `target/scala-2.10/coverage-report/index.html` afterwards.
 
