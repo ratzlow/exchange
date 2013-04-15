@@ -22,6 +22,12 @@ Or to simply run all the tests:
 
     sbt test
 
+For the test coverage, run:
+
+    sbt scct-test
+
+And check `target/scala-2.10/coverage-report/index.html` aftewards.
+
 Links
 -----
 * CI - <https://travis-ci.org/suls/exchange>
