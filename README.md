@@ -1,3 +1,9 @@
+----------------------------------------
+THIS PROJECT IS INACTIVE NOW!
+-----------------------------------------
+I started another, hopefully more promising [attempt](https://github.com/ratzlow/tinyEXCH 'tinyEXCH'), that goes a different way in terms of structuring work and using the java platform. 
+
+
 exchange [![Build Status](https://travis-ci.org/suls/exchange.png?branch=master)](https://travis-ci.org/suls/exchange)
 ========
 
