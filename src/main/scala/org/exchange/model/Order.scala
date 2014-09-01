@@ -1,7 +1,5 @@
 package org.exchange.model
 
-import Side._
-import OrderType._
 import org.scala_tools.time.Imports._
 
 /**
@@ -15,9 +13,9 @@ import org.scala_tools.time.Imports._
  * @param orderType ... how to execute an order (FIX: 40)
  * @param timestamp ... when order was added to orderbook
  */
-case class Order( side: Side, orderType: OrderType = OrderType.LIMIT,
-                  orderQty: Int, price: BigDecimal, isin: String, cummulatedQty: Int = 0,
-                  timestamp: DateTime = DateTime.now) {
+case class Order(side: Side, orderType: OrderType = Limit,
+                 orderQty: Int, price: BigDecimal, isin: String, cummulatedQty: Int = 0,
+                 timestamp: DateTime = DateTime.now) {
 
   /**
    * In the case of partial execution part of the order is not yet filled, so left open for further execution or until
@@ -33,15 +31,15 @@ case class Order( side: Side, orderType: OrderType = OrderType.LIMIT,
    * @param executedShareSize number of shares executed
    * @return updated Order with increased filled size
    */
-  def +=( executedShareSize: Int ) : Order = this.copy(cummulatedQty = this.cummulatedQty + executedShareSize)
+  def +=(executedShareSize: Int): Order = this.copy(cummulatedQty = this.cummulatedQty + executedShareSize)
 
-  def openQty : Int = openQuantiy
+  def openQty: Int = openQuantiy
 }
 
 object Order {
 
-  def apply(side: Side, orderType: OrderType, orderQty: Int, isin: String) : Order = {
-    require(orderType != LIMIT && orderType != STOP_LIMIT, "Must not be an order of limit type!")
+  def apply(side: Side, orderType: OrderType, orderQty: Int, isin: String): Order = {
+    require(orderType != Limit && orderType != StopLimit, "Must not be an order of limit type!")
     new Order(side, orderType, orderQty, BigDecimal(0), isin, 0)
   }
 }

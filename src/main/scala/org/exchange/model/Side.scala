@@ -8,7 +8,8 @@ package org.exchange.model
  * @author ratzlow@gmail.com
  * @since 2012-12-31
  */
-object Side extends Enumeration {
-  type Side = Value
-  val BUY, SELL = Value
-}
+sealed trait Side
+
+case object Buy extends Side
+
+case object Sell extends Side

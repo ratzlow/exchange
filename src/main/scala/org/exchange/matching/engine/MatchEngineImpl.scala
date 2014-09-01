@@ -20,7 +20,7 @@ import annotation.tailrec
  */
 // TODO (FRa) : (FRa) : extract ref price and make it part of injected matching strategy
 //TODO (FRa) : (FRa) : move ordering of orders to insertion time according to price/time prio
-private[engine] class MatchEngineImpl( referencePrice: Option[BigDecimal] = None ) extends MatchEngine {
+private[engine] class MatchEngineImpl(referencePrice: Option[BigDecimal] = None) extends MatchEngine {
 
   //
   // API entry point
@@ -32,7 +32,7 @@ private[engine] class MatchEngineImpl( referencePrice: Option[BigDecimal] = None
    * @param orderbook with the orders before orders were matched.
    * @return the result of the matching
    */
-  override def balance(orderbook: Orderbook) : MatchResult = {
+  override def balance(orderbook: Orderbook): MatchResult = {
     val orderedBuyOrders: List[Order] = orderbook.buyOrders.sortWith(MatchPriority.buyPriceTimePriority)
     val orderedSellOrders: List[Order] = orderbook.sellOrders.sortWith(MatchPriority.sellPriceTimePriority)
     balance(orderbook.isin, orderedBuyOrders, orderedSellOrders, Nil)
@@ -71,10 +71,10 @@ private[engine] class MatchEngineImpl( referencePrice: Option[BigDecimal] = None
   }
 
 
-  private def unmatchedOrders(order: Order, orders: List[Order], executionSize: Int ) : List[Order] = {
+  private def unmatchedOrders(order: Order, orders: List[Order], executionSize: Int): List[Order] = {
     val newCumQty = order.cummulatedQty + executionSize
 
-    if ( newCumQty < order.orderQty ) {
+    if (newCumQty < order.orderQty) {
       val updatedOrder: Order = order.copy(cummulatedQty = newCumQty)
       updatedOrder :: orders
     } else orders
@@ -87,20 +87,20 @@ private[engine] class MatchEngineImpl( referencePrice: Option[BigDecimal] = None
    * @param other order of other side of the book
    * @return if orders can be matched an execution otherwise None
    */
-  private def execute(one: Order, other: Order) : Option[Execution] = {
+  private def execute(one: Order, other: Order): Option[Execution] = {
     val executionSize = Math.min(one.openQty, other.openQty)
 
     // the sell order can be fully added to order to be executed
-    if (executionSize >= 0 && isGoodExecutionPrice(one, other) && canBeMatched(one, other) )
-      Some( Execution(one, other, executionSize) )
+    if (executionSize >= 0 && isGoodExecutionPrice(one, other) && canBeMatched(one, other))
+      Some(Execution(one, other, executionSize))
     else None
   }
 
   // TODO (FRa) : (FRa) : make available as strategy for auctions vs. continuous trading
-  private def canBeMatched( one: Order, other: Order ) : Boolean = {
+  private def canBeMatched(one: Order, other: Order): Boolean = {
     // only market orders are executable against each other or non-market orders are
-    (one.orderType == OrderType.MARKET && other.orderType == OrderType.MARKET) ||
-    (one.orderType != OrderType.MARKET && other.orderType != OrderType.MARKET)
+    (one.orderType == Market && other.orderType == Market) ||
+      (one.orderType != Market && other.orderType != Market)
   }
 
   //
@@ -121,22 +121,23 @@ private[engine] class MatchEngineImpl( referencePrice: Option[BigDecimal] = None
   /**
    * Price will always be okay if we match against a market order
    */
-  private def isGoodPrice( tradePrice: BigDecimal, order: Order ) : Boolean = {
-    def isGoodSellPrice : Boolean = {
-      require( tradePrice >= 0 )
-      require(order.side == Side.SELL)
+  private def isGoodPrice(tradePrice: BigDecimal, order: Order): Boolean = {
+    def isGoodSellPrice: Boolean = {
+      require(tradePrice >= 0)
+      require(order.side == Sell)
       tradePrice >= order.price && referencePrice.getOrElse(tradePrice) >= order.price
     }
 
-    def isGoodBuyPrice : Boolean = {
-      require( tradePrice >= 0 )
-      require( order.side == Side.BUY)
+    def isGoodBuyPrice: Boolean = {
+      require(tradePrice >= 0)
+      require(order.side == Buy)
       tradePrice <= order.price && referencePrice.getOrElse(tradePrice) <= order.price
     }
 
-    if (order.side == Side.BUY) isGoodBuyPrice
-    else if (order.side == Side.SELL) isGoodSellPrice
-    else throw new IllegalArgumentException("Invalid order side " + order)
+    order.side match {
+      case Buy => isGoodBuyPrice
+      case Sell => isGoodSellPrice
+    }
   }
 
 }

@@ -1,9 +1,10 @@
 package org.exchange.matching.engine
 
 import org.exchange.common.OrderGenerator
-import org.exchange.model.{OrderType, Orderbook, Side, Order}
-import org.exchange.model.OrderType._
+import org.exchange.model._
 import org.scalatest.FunSuite
+import org.exchange.model.OrderType
+import org.exchange.model.Orderbook
 
 /**
  * Execute some scenarios to fill and balance an orderbook. All actions are based on one time execution. Continuous
@@ -16,19 +17,19 @@ class BalanceOrderBookTest extends FunSuite {
   private val numberOfOrders: Int = 10000
 
   test("Match orderbook with only orders of type: limit") {
-    executeFilledOrderbook(OrderType.LIMIT)
+    executeFilledOrderbook(Limit)
   }
 
   test("Match orderbook with only orders of type: stoplimit") {
-    executeFilledOrderbook(OrderType.STOP_LIMIT)
+    executeFilledOrderbook(StopLimit)
   }
 
 
-  private def executeFilledOrderbook( orderTypes: OrderType* ) {
+  private def executeFilledOrderbook(orderTypes: OrderType*) {
     val generator = new OrderGenerator("IBM")
 
-    val sells: Seq[Order] = generator.newOrders(numberOfOrders, Side.SELL, (150, 300), (1000, 1100), orderTypes: _* )
-    val buys: Seq[Order] = generator.newOrders(numberOfOrders, Side.BUY, (150, 300), (1000, 1100), OrderType.LIMIT)
+    val sells: Seq[Order] = generator.newOrders(numberOfOrders, Sell, (150, 300), (1000, 1100), orderTypes: _*)
+    val buys: Seq[Order] = generator.newOrders(numberOfOrders, Buy, (150, 300), (1000, 1100), Limit)
 
     // fill orderbook
     val orderbook = new Orderbook("CoCa", buys.toList, sells.toList)
@@ -62,7 +63,7 @@ class BalanceOrderBookTest extends FunSuite {
     assert(bestBuy.get.price < bestSell.get.price)
   }
 
-  private def profile(msg: String) ( f: => Unit ) {
+  private def profile(msg: String)(f: => Unit) {
     val start: Long = System.nanoTime()
     f
     println(s"duration for $msg = ${(System.nanoTime() - start) / 1e6} ms")
